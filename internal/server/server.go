@@ -295,3 +295,4 @@ func (s *Server) loadConfig() error {
 	logrus.Info("CommonConfig file loaded")
 	return nil
 }
+
