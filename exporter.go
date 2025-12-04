@@ -14,11 +14,11 @@ import (
 func Run(name string, version string) error {
 	logger.InitDefaultLog()
 
-	// 统一加载配置：优先从 YAML 读取，失败时回退到默认配置。
+	// 统一加载配置：优先从 YAML 读取，失败时直接返回错误。
 	commonCfg, err := exporter.LoadConfig()
 	if err != nil {
-		logrus.Errorf("LoadConfig error, use default config: %v", err)
-		commonCfg = exporter.DefaultConfig
+		logrus.Errorf("LoadConfig error: %v", err)
+		return err
 	}
 
 	s := server.NewServer(name, version)

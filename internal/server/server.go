@@ -33,9 +33,6 @@ type Server struct {
 	ExitSignal     chan struct{}
 	Error          error
 	callback       sync.Once
-	// ExporterConfig 保留为未来扩展预留，目前未在主流程中使用。
-	// 如需启用基于 HTTP 的 scrape，可在此基础上集成 config.Settings。
-	ExporterConfig exporter.Config
 	server         *http.Server
 }
 
@@ -70,11 +67,6 @@ func (s *Server) SetUp() error {
 		logrus.Errorf("SetUp error: %v", err)
 		return err
 	}
-	err = exporter.Unpack(&s.ExporterConfig)
-	if err != nil {
-		logrus.Error("Failed to unpack config: ", err)
-		logrus.Info("Use default config")
-	}
 	return nil
 }
 
@@ -87,9 +79,6 @@ func (s *Server) setupLog() error {
 	logConfig := logger.NewConfig(s.CommonConfig.Logging.Level, s.CommonConfig.Logging.LogPath, int64(size), s.CommonConfig.Logging.MaxAge)
 	logger.Init(logConfig)
 	return nil
-}
-
-func (s *Server) setupCmdArg() {
 }
 
 func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
@@ -252,14 +241,6 @@ func (s *Server) Exit() {
 	s.callback.Do(func() {
 		close(s.ExitSignal)
 	})
-}
-
-func (s *Server) parse() error {
-	return nil
-}
-
-func (s *Server) loadConfig() error {
-	return nil
 }
 
 
