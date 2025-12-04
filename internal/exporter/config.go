@@ -1,10 +1,13 @@
 package exporter
 
+
 import (
-	"iptables_exporter/pkg/logger"
-	"iptables_exporter/pkg/utils"
+	"fmt"
 	"os"
 	"time"
+
+	"iptables_exporter/pkg/logger"
+	"iptables_exporter/pkg/utils"
 
 	"github.com/alecthomas/kingpin"
 	"github.com/sirupsen/logrus"
@@ -12,7 +15,11 @@ import (
 )
 
 var (
-	Configfile    *string
+	Configfile    = kingpin.Flag("config", "Configuration file").
+		Short('c').
+		Default("/etc/uos-exporter/iptables-exporter.yaml").
+		String()
+
 	DefaultConfig = Config{
 		Logging: logger.Config{
 			Level:   "debug",
@@ -22,16 +29,8 @@ var (
 		Address:     "127.0.0.1",
 		Port:        8080,
 		MetricsPath: "/metrics",
-	}
-)
-
-func init() {
-	kingpin.HelpFlag.Short('h')
-	Configfile = kingpin.Flag("config", "Configuration file").
-		Short('c').
-		Default("/etc/uos-exporter/iptables-exporter.yaml").
-		String()
 }
+)
 
 type Config struct {
 	Logging     logger.Config `yaml:"log"`
@@ -42,8 +41,7 @@ type Config struct {
 
 func Unpack(config interface{}) error {
 	if !utils.FileExists(*Configfile) {
-		logrus.Errorf("%s file not found", *Configfile)
-		logrus.Debug("Use default config")
+		logrus.Warnf("%s file not found, using default config", *Configfile)
 	} else {
 		file, err := os.Open(*Configfile)
 		if err != nil {
@@ -56,4 +54,21 @@ func Unpack(config interface{}) error {
 		}
 	}
 	return nil
+}
+
+// LoadConfig 解析命令行参数并加载配置文件，返回最终配置。
+//
+// 使用方式：
+//   kingpin.HelpFlag.Short('h')
+//   kingpin.Parse()
+//   cfg, err := exporter.LoadConfig()
+func LoadConfig() (Config, error) {
+	// 先以默认值初始化
+	cfg := DefaultConfig
+
+	if err := Unpack(&cfg); err != nil {
+		return Config{}, fmt.Errorf("failed to unpack config: %w", err)
+	}
+
+	return cfg, nil
 }
