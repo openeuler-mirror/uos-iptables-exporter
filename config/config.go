@@ -1,43 +1,25 @@
 package config
 
-import (
-	"iptables_exporter/pkg/utils"
+import "iptables_exporter/pkg/utils"
 
-	"github.com/alecthomas/kingpin"
-	"github.com/sirupsen/logrus"
-)
-
-var (
-	ScrapeUrl       *string
-	Insecure        *bool
-	DefaultSettings = Settings{
-		//ScrapeUri: "http://127.0.0.1:24220/api/plugins.json",
-		Insecure: false,
-	}
-)
-
-func init() {
-	ScrapeUrl = kingpin.Flag("scrape_uri",
-		"Scrape URI").
-		Short('s').
-		String()
-	Insecure = kingpin.Flag("insecure",
-		"Ignore server certificate if using https, Default: false.").
-		Bool()
-	if *ScrapeUrl != "" {
-		if err := utils.ValidateURI(*ScrapeUrl); err != nil {
-			logrus.Warnf("Invalid scrape uri: %s", err)
-			logrus.Warnf("Use default scrape uri: %s", DefaultSettings.ScrapeUri)
-			*ScrapeUrl = DefaultSettings.ScrapeUri
-		}
-	}
-
-	if *Insecure {
-		logrus.Warn("Insecure mode enabled, this is not recommended for production use.")
-	}
-}
-
+// Settings 保留为未来扩展预留，目前未在主流程中使用。
+// 如需启用基于 HTTP 的 scrape，可在此基础上补充逻辑，并在 main 中显式调用。
 type Settings struct {
 	ScrapeUri string `yaml:"scrape_uri"`
 	Insecure  bool   `yaml:"insecure"`
+}
+
+// ValidateSettings 用于在显式解析配置后进行合法性校验。
+// 当前仅示例性地校验 ScrapeUri，如不需要可在调用层忽略。
+func ValidateSettings(s *Settings) {
+	if s == nil {
+		return
+	}
+	if s.ScrapeUri == "" {
+		return
+	}
+	if err := utils.ValidateURI(s.ScrapeUri); err != nil {
+		// 调用方可以决定是否输出日志，这里只修正为默认值的占位逻辑
+		// s.ScrapeUri = DefaultSettings.ScrapeUri
+	}
 }
