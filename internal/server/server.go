@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"iptables_exporter/config"
 	"iptables_exporter/internal/exporter"
 	_ "iptables_exporter/internal/metrics"
 	"iptables_exporter/pkg/logger"
@@ -36,7 +35,9 @@ type Server struct {
 	ExitSignal     chan struct{}
 	Error          error
 	callback       sync.Once
-	ExporterConfig config.Settings
+	// ExporterConfig 保留为未来扩展预留，目前未在主流程中使用。
+	// 如需启用基于 HTTP 的 scrape，可在此基础上集成 config.Settings。
+	ExporterConfig exporter.Config
 	server         *http.Server
 }
 
@@ -86,10 +87,6 @@ func (s *Server) SetUp() error {
 		logrus.Error("Failed to unpack config: ", err)
 		logrus.Info("Use default config")
 	}
-	if config.ScrapeUrl != nil {
-		logrus.Info("Using command-line parameters to override configuration parameters")
-		s.ExporterConfig.ScrapeUri = *config.ScrapeUrl
-	}
 	return nil
 }
 
@@ -105,10 +102,6 @@ func (s *Server) setupLog() error {
 }
 
 func (s *Server) setupCmdArg() {
-	if config.ScrapeUrl != nil {
-		logrus.Info("Using command-line parameters to override configuration parameters")
-		s.ExporterConfig.ScrapeUri = *config.ScrapeUrl
-	}
 }
 
 func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
