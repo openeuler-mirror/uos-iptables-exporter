@@ -16,12 +16,10 @@ import (
 	"iptables_exporter/pkg/ratelimit"
 	"iptables_exporter/pkg/utils"
 
-	"github.com/alecthomas/kingpin"
 	"github.com/dustin/go-humanize"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 )
 
 var defaultSeverVersion = "1.0.0"
@@ -61,17 +59,7 @@ func (s *Server) SetUp() error {
 			logrus.Errorf("SetUp error: %v", s.Error)
 		}
 	}()
-	err := s.parse()
-	if err != nil {
-		logrus.Errorf("Parsing command line arguments failed: %v", err)
-		return err
-	}
-	err = s.loadConfig()
-	if err != nil {
-		logrus.Errorf("Loading config file failed: %v", err)
-		return err
-	}
-	err = s.setupLog()
+	err := s.setupLog()
 	if err != nil {
 		logrus.Errorf("SetUp error: %v", err)
 		return err
@@ -267,25 +255,10 @@ func (s *Server) Exit() {
 }
 
 func (s *Server) parse() error {
-	kingpin.Parse()
 	return nil
 }
 
 func (s *Server) loadConfig() error {
-	content, err := os.ReadFile(*exporter.Configfile)
-	if err != nil {
-		logrus.Errorf("Failed to read config file: %v", err)
-		logrus.Info("Use default config")
-		return nil
-	}
-	err = yaml.Unmarshal(content, &s.CommonConfig)
-	if err != nil {
-		logrus.Errorf("Failed to parse config file: %v", err)
-		logrus.Info("Use default config")
-		return nil
-	}
-	logrus.Infof("Loaded config file from: %s", *exporter.Configfile)
-	logrus.Info("CommonConfig file loaded")
 	return nil
 }
 
