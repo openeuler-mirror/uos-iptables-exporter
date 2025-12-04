@@ -10,7 +10,6 @@ import (
 	"iptables_exporter/pkg/utils"
 
 	"github.com/alecthomas/kingpin"
-	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -41,17 +40,16 @@ type Config struct {
 
 func Unpack(config interface{}) error {
 	if !utils.FileExists(*Configfile) {
-		logrus.Warnf("%s file not found, using default config", *Configfile)
-	} else {
-		file, err := os.Open(*Configfile)
-		if err != nil {
-			logrus.Error("Failed to open config file: ", err)
-			return err
-		}
-		err = yaml.NewDecoder(file).Decode(config)
-		if err != nil {
-			return err
-		}
+		return fmt.Errorf("config file %s not found", *Configfile)
+	}
+	file, err := os.Open(*Configfile)
+	if err != nil {
+		return fmt.Errorf("failed to open config file %s: %w", *Configfile, err)
+	}
+	defer file.Close()
+
+	if err := yaml.NewDecoder(file).Decode(config); err != nil {
+		return fmt.Errorf("failed to decode config file %s: %w", *Configfile, err)
 	}
 	return nil
 }
