@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"iptables_exporter/internal/exporter"
-	_ "iptables_exporter/internal/metrics"
+	"iptables_exporter/internal/metrics"
 	"iptables_exporter/pkg/logger"
 	"iptables_exporter/pkg/ratelimit"
 	"iptables_exporter/pkg/utils"
@@ -28,15 +28,15 @@ import (
 var defaultSeverVersion = "1.0.0"
 
 type Server struct {
-	Name           string
-	Version        string
-	CommonConfig   exporter.Config
-	promReg        *prometheus.Registry
-	handlers       []HandlerFunc
-	ExitSignal     chan struct{}
-	Error          error
-	callback       sync.Once
-	server         *http.Server
+	Name         string
+	Version      string
+	CommonConfig exporter.Config
+	promReg      *prometheus.Registry
+	handlers     []HandlerFunc
+	ExitSignal   chan struct{}
+	Error        error
+	callback     sync.Once
+	server       *http.Server
 }
 
 func NewServer(name, version string) *Server {
@@ -85,23 +85,31 @@ func (s *Server) setupLog() error {
 }
 
 func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
-	// 构造健康检查响应
 	type healthzResponse struct {
 		Status  string `json:"status"`
 		Message string `json:"message"`
 	}
-	response := healthzResponse{
+
+	statusCode := http.StatusOK
+	resp := healthzResponse{
 		Status:  "ok",
 		Message: fmt.Sprintf("%s is running normally.", s.getName()),
 	}
 
-	// 设置响应头为 JSON 格式
-	w.Header().Set("Content-Type", "application/json")
+	// 如果最近一次抓取失败，则认为不健康
+	if !metrics.LastScrapeOK() {
+		statusCode = http.StatusServiceUnavailable
+		msg := metrics.LastScrapeError()
+		if msg == "" {
+			msg = "last iptables scrape failed"
+		}
+		resp.Status = "error"
+		resp.Message = msg
+	}
 
-	// 使用缓冲区编码 JSON 数据，避免部分写入问题
+	w.Header().Set("Content-Type", "application/json")
 	buf := new(bytes.Buffer)
-	if err := json.NewEncoder(buf).Encode(response); err != nil {
-		// 记录详细的错误日志，包括请求上下文
+	if err := json.NewEncoder(buf).Encode(resp); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"method": r.Method,
 			"path":   r.URL.Path,
@@ -111,10 +119,8 @@ func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 写入状态码并发送响应体
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(statusCode)
 	if _, err := buf.WriteTo(w); err != nil {
-		// 记录写入失败的日志
 		logrus.WithFields(logrus.Fields{
 			"method": r.Method,
 			"path":   r.URL.Path,
@@ -245,6 +251,3 @@ func (s *Server) Exit() {
 		close(s.ExitSignal)
 	})
 }
-
-
-
