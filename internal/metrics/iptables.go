@@ -16,6 +16,21 @@ func init() {
 	exporter.Register(NewIptablesCollector())
 }
 
+var (
+	lastScrapeSuccessState = true
+	lastScrapeErrorMessage = ""
+)
+
+// LastScrapeOK returns whether the last iptables scrape succeeded.
+func LastScrapeOK() bool {
+	return lastScrapeSuccessState
+}
+
+// LastScrapeError returns the error message of the last failed scrape (empty if none).
+func LastScrapeError() string {
+	return lastScrapeErrorMessage
+}
+
 type IptablesCollector struct {
 	scrapeDurantion     *prometheus.Desc
 	scrapeSuccess       *prometheus.Desc
@@ -119,6 +134,8 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 	if err != nil {
 		success = 0
 		scrapeErrors = 1
+		lastScrapeSuccessState = false
+		lastScrapeErrorMessage = err.Error()
 		// 记录抓取错误总数以及最近一次抓取失败
 		ch <- prometheus.MustNewConstMetric(c.scrapeErrorsTotal, prometheus.CounterValue, scrapeErrors)
 		ch <- prometheus.MustNewConstMetric(c.scrapeSuccess, prometheus.GaugeValue, success)
@@ -132,6 +149,8 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(c.scrapeSuccess, prometheus.GaugeValue, success)
 	ch <- prometheus.MustNewConstMetric(c.lastScrapeSuccess, prometheus.GaugeValue, 1)
 	ch <- prometheus.MustNewConstMetric(c.lastScrapeTimestamp, prometheus.GaugeValue, float64(time.Now().Unix()))
+	lastScrapeSuccessState = true
+	lastScrapeErrorMessage = ""
 
 	// 发送详细指标
 	for _, table := range tables {
