@@ -217,6 +217,8 @@ func (p *parser) handleRule(line string) {
 		Packets:  subParser.packets,
 		Bytes:    subParser.bytes,
 		RuleSpec: strings.TrimPrefix(strings.Join(subParser.flags, " "), "-A"),
+		InIface:  subParser.inIface,
+		OutIface: subParser.outIface,
 	}
 	chain := p.currentTable.Chains[subParser.chain]
 	chain.Rules = append(chain.Rules, r)

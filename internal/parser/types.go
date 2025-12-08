@@ -22,6 +22,8 @@ type Rule struct {
 	RuleSpec string
 	Packets  uint64
 	Bytes    uint64
+	InIface  string
+	OutIface string
 }
 
 type parser struct {
@@ -40,6 +42,8 @@ type ruleParser struct {
 	currentValues []string
 	chain         string
 	flags         []string
+	inIface       string
+	outIface      string
 }
 
 type ParseError struct {
