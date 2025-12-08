@@ -43,6 +43,9 @@ type IptablesCollector struct {
 	scrapeErrorsTotal   *prometheus.Desc
 	lastScrapeSuccess   *prometheus.Desc
 	lastScrapeTimestamp *prometheus.Desc
+	tableChainsTotal    *prometheus.Desc
+	chainRulesTotal     *prometheus.Desc
+	chainEmpty          *prometheus.Desc
 	defaultBytesTotal   *prometheus.Desc
 	defaultPacketsTotal *prometheus.Desc
 	ruleBytesTotal      *prometheus.Desc
@@ -87,6 +90,24 @@ func NewIptablesCollector() *IptablesCollector {
 			nil,
 			nil,
 		),
+		tableChainsTotal: prometheus.NewDesc(
+			"iptables_table_chains_total",
+			"Total number of chains in an iptables table.",
+			[]string{"table"},
+			nil,
+		),
+		chainRulesTotal: prometheus.NewDesc(
+			"iptables_chain_rules_total",
+			"Total number of rules in an iptables chain.",
+			[]string{"table", "chain"},
+			nil,
+		),
+		chainEmpty: prometheus.NewDesc(
+			"iptables_chain_empty",
+			"Whether an iptables chain has no rules (1 for empty, 0 otherwise).",
+			[]string{"table", "chain"},
+			nil,
+		),
 		defaultBytesTotal: prometheus.NewDesc(
 			"iptables_default_bytes_total",
 			"Total bytes matching a chain's default policy.",
@@ -121,6 +142,9 @@ func (c *IptablesCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.scrapeErrorsTotal
 	ch <- c.lastScrapeSuccess
 	ch <- c.lastScrapeTimestamp
+	ch <- c.tableChainsTotal
+	ch <- c.chainRulesTotal
+	ch <- c.chainEmpty
 	ch <- c.defaultBytesTotal
 	ch <- c.defaultPacketsTotal
 	ch <- c.ruleBytesTotal
@@ -184,7 +208,37 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 
 	// 发送详细指标
 	for _, table := range tables {
+		// 表级聚合：表中链的数量
+		ch <- prometheus.MustNewConstMetric(
+			c.tableChainsTotal,
+			prometheus.GaugeValue,
+			float64(len(table.Chains)),
+			table.Name,
+		)
+
 		for _, chain := range table.Chains {
+			// 链级聚合：规则数量和是否为空
+			ruleCount := len(chain.Rules)
+			isEmpty := 0.0
+			if ruleCount == 0 {
+				isEmpty = 1.0
+			}
+
+			ch <- prometheus.MustNewConstMetric(
+				c.chainRulesTotal,
+				prometheus.GaugeValue,
+				float64(ruleCount),
+				table.Name,
+				chain.Name,
+			)
+			ch <- prometheus.MustNewConstMetric(
+				c.chainEmpty,
+				prometheus.GaugeValue,
+				isEmpty,
+				table.Name,
+				chain.Name,
+			)
+
 			// 默认策略指标
 			ch <- prometheus.MustNewConstMetric(
 				c.defaultPacketsTotal,
