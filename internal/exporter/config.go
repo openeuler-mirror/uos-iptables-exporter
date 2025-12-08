@@ -28,10 +28,11 @@ var (
 			MaxSize: "10MB",
 			MaxAge:  time.Hour * 24 * 7,
 		},
-		Address:              "127.0.0.1",
-		Port:                 8080,
-		MetricsPath:          "/metrics",
-		ScrapeTimeoutSeconds: 5,
+		Address:                  "127.0.0.1",
+		Port:                     9077,
+		MetricsPath:              "/metrics",
+		ScrapeTimeoutSeconds:     20,
+		MinScrapeIntervalSeconds: 10,
 	}
 )
 
@@ -43,6 +44,10 @@ type Config struct {
 	// ScrapeTimeoutSeconds defines the maximum duration (in seconds) allowed for
 	// a single iptables scrape before it is treated as failed.
 	ScrapeTimeoutSeconds int `yaml:"scrapeTimeoutSeconds"`
+	// MinScrapeIntervalSeconds defines the minimum interval (in seconds) between
+	// two real iptables scrapes. If Prometheus scrapes more frequently than this
+	// value, cached results from the last successful scrape may be reused.
+	MinScrapeIntervalSeconds int `yaml:"minScrapeIntervalSeconds"`
 }
 
 func Unpack(config interface{}) error {
