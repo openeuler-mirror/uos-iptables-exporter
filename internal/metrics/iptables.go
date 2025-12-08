@@ -35,6 +35,8 @@ func LastScrapeError() string {
 
 type IptablesCollector struct {
 	mu                  sync.Mutex
+	lastTables          parser.Tables
+	lastScrapeTime      time.Time
 	scrapeDurantion     *prometheus.Desc
 	scrapeSuccess       *prometheus.Desc
 	scrapeTotal         *prometheus.Desc
@@ -140,21 +142,36 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 	if timeout <= 0 {
 		timeout = 5 * time.Second
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
 
-	tables, err := parser.GetTables(ctx)
-	if err != nil {
-		success = 0
-		scrapeErrors = 1
-		lastScrapeSuccessState = false
-		lastScrapeErrorMessage = err.Error()
-		// 记录抓取错误总数以及最近一次抓取失败
-		ch <- prometheus.MustNewConstMetric(c.scrapeErrorsTotal, prometheus.CounterValue, scrapeErrors)
-		ch <- prometheus.MustNewConstMetric(c.scrapeSuccess, prometheus.GaugeValue, success)
-		ch <- prometheus.MustNewConstMetric(c.lastScrapeSuccess, prometheus.GaugeValue, 0)
-		// 失败时不更新时间戳，只保留最近一次成功的时间戳
-		return
+	// 结果缓存：根据 MinScrapeIntervalSeconds 决定是否复用上一次抓取结果
+	minInterval := time.Duration(exporter.DefaultConfig.MinScrapeIntervalSeconds) * time.Second
+	var tables parser.Tables
+
+	// 如果设置了最小抓取间隔且上次抓取时间在该间隔内，复用缓存
+	if minInterval > 0 && !c.lastScrapeTime.IsZero() && time.Since(c.lastScrapeTime) < minInterval && lastScrapeSuccessState {
+		tables = c.lastTables
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		var err error
+		tables, err = parser.GetTables(ctx)
+		if err != nil {
+			success = 0
+			scrapeErrors = 1
+			lastScrapeSuccessState = false
+			lastScrapeErrorMessage = err.Error()
+			// 记录抓取错误总数以及最近一次抓取失败
+			ch <- prometheus.MustNewConstMetric(c.scrapeErrorsTotal, prometheus.CounterValue, scrapeErrors)
+			ch <- prometheus.MustNewConstMetric(c.scrapeSuccess, prometheus.GaugeValue, success)
+			ch <- prometheus.MustNewConstMetric(c.lastScrapeSuccess, prometheus.GaugeValue, 0)
+			// 失败时不更新时间戳，只保留最近一次成功的时间戳
+			return
+		}
+
+		// 成功抓取后更新缓存
+		c.lastTables = tables
+		c.lastScrapeTime = time.Now()
 	}
 
 	// 发送基础指标

@@ -4,4 +4,5 @@ metricsPath: "/metrics"
 log:
   level: "debug"
 
-scrapeTimeoutSeconds: 10
+scrapeTimeoutSeconds: 20
+minScrapeIntervalSeconds: 10
