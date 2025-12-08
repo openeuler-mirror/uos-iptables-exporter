@@ -214,13 +214,15 @@ func (p *parser) handleRule(line string) {
 	}
 
 	r := Rule{
-		Packets:  subParser.packets,
-		Bytes:    subParser.bytes,
-		RuleSpec: strings.TrimPrefix(strings.Join(subParser.flags, " "), "-A"),
+		Packets: subParser.packets,
+		Bytes:   subParser.bytes,
+		// 保留完整规则文本（去掉计数器），便于在指标中直接查看
+		RuleSpec: line,
 		InIface:  subParser.inIface,
 		OutIface: subParser.outIface,
 	}
 	chain := p.currentTable.Chains[subParser.chain]
+	r.Index = len(chain.Rules)
 	chain.Rules = append(chain.Rules, r)
 	p.currentTable.Chains[subParser.chain] = chain
 }
@@ -244,11 +246,15 @@ func (p *parser) handleRuleWithCounter(ruleLine string, packets, bytes uint64) {
 	}
 
 	r := Rule{
-		Packets:  subParser.packets,
-		Bytes:    subParser.bytes,
-		RuleSpec: strings.TrimPrefix(strings.Join(subParser.flags, " "), "-A"),
+		Packets: subParser.packets,
+		Bytes:   subParser.bytes,
+		// 这里 ruleLine 已经是不带计数器的 "-A ..." 形式
+		RuleSpec: ruleLine,
+		InIface:  subParser.inIface,
+		OutIface: subParser.outIface,
 	}
 	chain := p.currentTable.Chains[subParser.chain]
+	r.Index = len(chain.Rules)
 	chain.Rules = append(chain.Rules, r)
 	p.currentTable.Chains[subParser.chain] = chain
 }
