@@ -16,6 +16,12 @@ func (p *ruleParser) flush() {
 		case "-A", "--append":
 			// 确保 `-A` 规则赋值 chain
 			p.chain = p.currentValues[0]
+		case "-i", "--in-interface":
+			// 输入接口
+			p.inIface = p.currentValues[0]
+		case "-o", "--out-interface":
+			// 输出接口
+			p.outIface = p.currentValues[0]
 		default:
 			p.flags = append(p.flags, p.current)
 			p.flags = append(p.flags, p.currentValues...)
