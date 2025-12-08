@@ -5,9 +5,11 @@ package metrics
 
 import (
 	"context"
+	"sync"
+	"time"
+
 	"iptables_exporter/internal/exporter"
 	"iptables_exporter/internal/parser"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -32,6 +34,7 @@ func LastScrapeError() string {
 }
 
 type IptablesCollector struct {
+	mu                  sync.Mutex
 	scrapeDurantion     *prometheus.Desc
 	scrapeSuccess       *prometheus.Desc
 	scrapeTotal         *prometheus.Desc
@@ -123,14 +126,24 @@ func (c *IptablesCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	start := time.Now()
 	success := 1.0
 	scrapeErrors := 0.0
 	// 每次 Collect 都增加一次抓取总数
 	ch <- prometheus.MustNewConstMetric(c.scrapeTotal, prometheus.CounterValue, 1)
 
-	// 带超时的数据采集
-	tables, err := parser.GetTables(context.Background())
+	// 带超时的数据采集：使用配置中的 ScrapeTimeoutSeconds
+	timeout := time.Duration(exporter.DefaultConfig.ScrapeTimeoutSeconds) * time.Second
+	if timeout <= 0 {
+		timeout = 5 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	tables, err := parser.GetTables(ctx)
 	if err != nil {
 		success = 0
 		scrapeErrors = 1

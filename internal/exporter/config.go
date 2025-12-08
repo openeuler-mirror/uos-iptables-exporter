@@ -3,7 +3,6 @@
 
 package exporter
 
-
 import (
 	"fmt"
 	"os"
@@ -17,21 +16,23 @@ import (
 )
 
 var (
-	Configfile    = kingpin.Flag("config", "Configuration file").
-		Short('c').
-		Default("/etc/uos-exporter/iptables-exporter.yaml").
-		String()
+	Configfile = kingpin.Flag("config", "Configuration file").
+			Short('c').
+			Default("/etc/uos-exporter/iptables-exporter.yaml").
+			String()
 
 	DefaultConfig = Config{
 		Logging: logger.Config{
 			Level:   "debug",
 			LogPath: "/var/log/exporter.log",
 			MaxSize: "10MB",
-			MaxAge:  time.Hour * 24 * 7},
-		Address:     "127.0.0.1",
-		Port:        8080,
-		MetricsPath: "/metrics",
-}
+			MaxAge:  time.Hour * 24 * 7,
+		},
+		Address:              "127.0.0.1",
+		Port:                 8080,
+		MetricsPath:          "/metrics",
+		ScrapeTimeoutSeconds: 5,
+	}
 )
 
 type Config struct {
@@ -39,6 +40,9 @@ type Config struct {
 	Address     string        `yaml:"address"`
 	Port        int           `yaml:"port"`
 	MetricsPath string        `yaml:"metricsPath"`
+	// ScrapeTimeoutSeconds defines the maximum duration (in seconds) allowed for
+	// a single iptables scrape before it is treated as failed.
+	ScrapeTimeoutSeconds int `yaml:"scrapeTimeoutSeconds"`
 }
 
 func Unpack(config interface{}) error {
@@ -60,9 +64,10 @@ func Unpack(config interface{}) error {
 // LoadConfig 解析命令行参数并加载配置文件，返回最终配置。
 //
 // 使用方式：
-//   kingpin.HelpFlag.Short('h')
-//   kingpin.Parse()
-//   cfg, err := exporter.LoadConfig()
+//
+//	kingpin.HelpFlag.Short('h')
+//	kingpin.Parse()
+//	cfg, err := exporter.LoadConfig()
 func LoadConfig() (Config, error) {
 	// 先以默认值初始化
 	cfg := DefaultConfig

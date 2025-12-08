@@ -3,3 +3,5 @@ port: 9077
 metricsPath: "/metrics"
 log:
   level: "debug"
+
+scrapeTimeoutSeconds: 10
