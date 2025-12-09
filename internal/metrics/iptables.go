@@ -37,6 +37,7 @@ type IptablesCollector struct {
 	mu                  sync.Mutex
 	lastTables          parser.Tables
 	lastScrapeTime      time.Time
+	getTables           func(ctx context.Context) (parser.Tables, error)
 	scrapeDurantion     *prometheus.Desc
 	scrapeSuccess       *prometheus.Desc
 	scrapeTotal         *prometheus.Desc
@@ -54,6 +55,7 @@ type IptablesCollector struct {
 
 func NewIptablesCollector() *IptablesCollector {
 	return &IptablesCollector{
+		getTables: parser.GetTables,
 		scrapeDurantion: prometheus.NewDesc(
 			"iptables_exporter_scrape_duration_seconds",
 			"Duration of scraping iptables.",
@@ -179,7 +181,10 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 		defer cancel()
 
 		var err error
-		tables, err = parser.GetTables(ctx)
+		if c.getTables == nil {
+			c.getTables = parser.GetTables
+		}
+		tables, err = c.getTables(ctx)
 		if err != nil {
 			success = 0
 			scrapeErrors = 1
