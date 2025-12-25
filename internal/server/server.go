@@ -99,9 +99,9 @@ func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 如果最近一次抓取失败，则认为不健康
-	if !metrics.LastScrapeOK() {
+	if s.scraper != nil && !s.scraper.LastOK() {
 		statusCode = http.StatusServiceUnavailable
-		msg := metrics.LastScrapeError()
+		msg := s.scraper.LastError()
 		if msg == "" {
 			msg = "last iptables scrape failed"
 		}
@@ -146,7 +146,7 @@ func (s *Server) setupHttpServer() error {
 	s.scraper.Start(ctx)
 
 	// Register collectors with the YAML-loaded config before exposing metrics.
-	exporter.Register(metrics.NewIptablesCollector(s.CommonConfig))
+	exporter.Register(metrics.NewIptablesCollectorWithScraper(s.scraper))
 	exporter.RegisterPrometheus(s.promReg)
 	mux := http.NewServeMux()
 
