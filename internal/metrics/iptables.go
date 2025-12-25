@@ -4,12 +4,9 @@
 package metrics
 
 import (
-	"context"
 	"sync"
-	"time"
 
 	"iptables_exporter/internal/exporter"
-	"iptables_exporter/internal/parser"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -35,12 +32,7 @@ func LastScrapeError() string {
 
 type IptablesCollector struct {
 	mu                  sync.Mutex
-	cfg                 exporter.Config
-	lastTables          parser.Tables
-	lastScrapeTime      time.Time
-	scrapeTotalCount    uint64
-	scrapeErrorCount    uint64
-	getTables           func(ctx context.Context) (parser.Tables, error)
+	scraper             *IptablesScraper
 	scrapeDurantion     *prometheus.Desc
 	scrapeSuccess       *prometheus.Desc
 	scrapeTotal         *prometheus.Desc
@@ -56,10 +48,17 @@ type IptablesCollector struct {
 	rulePacketsTotal    *prometheus.Desc
 }
 
+// NewIptablesCollector is a backwards-compatible constructor.
+//
+// It does not start background scraping. Production code should prefer
+// NewIptablesCollectorWithScraper and start the scraper in the server lifecycle.
 func NewIptablesCollector(cfg exporter.Config) *IptablesCollector {
+	return NewIptablesCollectorWithScraper(NewIptablesScraper(cfg))
+}
+
+func NewIptablesCollectorWithScraper(scraper *IptablesScraper) *IptablesCollector {
 	return &IptablesCollector{
-		cfg:       cfg,
-		getTables: parser.GetTables,
+		scraper: scraper,
 		scrapeDurantion: prometheus.NewDesc(
 			"iptables_exporter_scrape_duration_seconds",
 			"Duration of scraping iptables.",
@@ -161,65 +160,49 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	start := time.Now()
-	success := 1.0
-
-	// Counter semantics: these must be monotonically increasing.
-	c.scrapeTotalCount++
-	ch <- prometheus.MustNewConstMetric(c.scrapeTotal, prometheus.CounterValue, float64(c.scrapeTotalCount))
-	ch <- prometheus.MustNewConstMetric(c.scrapeErrorsTotal, prometheus.CounterValue, float64(c.scrapeErrorCount))
-
-	// 带超时的数据采集：使用配置中的 ScrapeTimeoutSeconds
-	timeout := time.Duration(c.cfg.ScrapeTimeoutSeconds) * time.Second
-	if timeout <= 0 {
-		timeout = 5 * time.Second
+	if c.scraper == nil {
+		// No scraper configured; report exporter as unhealthy.
+		ch <- prometheus.MustNewConstMetric(c.scrapeDurantion, prometheus.GaugeValue, 0)
+		ch <- prometheus.MustNewConstMetric(c.scrapeSuccess, prometheus.GaugeValue, 0)
+		ch <- prometheus.MustNewConstMetric(c.scrapeTotal, prometheus.CounterValue, 0)
+		ch <- prometheus.MustNewConstMetric(c.scrapeErrorsTotal, prometheus.CounterValue, 0)
+		ch <- prometheus.MustNewConstMetric(c.lastScrapeSuccess, prometheus.GaugeValue, 0)
+		ch <- prometheus.MustNewConstMetric(c.lastScrapeTimestamp, prometheus.GaugeValue, 0)
+		lastScrapeSuccessState = false
+		lastScrapeErrorMessage = "scraper not configured"
+		return
 	}
 
-	// 结果缓存：根据 MinScrapeIntervalSeconds 决定是否复用上一次抓取结果
-	minInterval := time.Duration(c.cfg.MinScrapeIntervalSeconds) * time.Second
-	var tables parser.Tables
+	tables, lastOK, lastErr, lastSuccess, scrapeTotal, scrapeErrors, lastDuration := c.scraper.Snapshot()
 
-	// 如果设置了最小抓取间隔且上次抓取时间在该间隔内，复用缓存
-	if minInterval > 0 && !c.lastScrapeTime.IsZero() && time.Since(c.lastScrapeTime) < minInterval && lastScrapeSuccessState {
-		tables = c.lastTables
-	} else {
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-
-		var err error
-		if c.getTables == nil {
-			c.getTables = parser.GetTables
-		}
-		tables, err = c.getTables(ctx)
-		if err != nil {
-			success = 0
-			c.scrapeErrorCount++
-			lastScrapeSuccessState = false
-			lastScrapeErrorMessage = err.Error()
-			// 记录抓取错误总数以及最近一次抓取失败
-			ch <- prometheus.MustNewConstMetric(c.scrapeErrorsTotal, prometheus.CounterValue, float64(c.scrapeErrorCount))
-			ch <- prometheus.MustNewConstMetric(c.scrapeSuccess, prometheus.GaugeValue, success)
-			ch <- prometheus.MustNewConstMetric(c.lastScrapeSuccess, prometheus.GaugeValue, 0)
-			// 失败时不更新时间戳，只保留最近一次成功的时间戳
-			return
-		}
-
-		// 成功抓取后更新缓存
-		c.lastTables = tables
-		c.lastScrapeTime = time.Now()
+	success := 0.0
+	if lastOK {
+		success = 1.0
 	}
 
-	// 发送基础指标
-	ch <- prometheus.MustNewConstMetric(c.scrapeDurantion, prometheus.GaugeValue, time.Since(start).Seconds())
+	// Base metrics
+	ch <- prometheus.MustNewConstMetric(c.scrapeDurantion, prometheus.GaugeValue, lastDuration.Seconds())
 	ch <- prometheus.MustNewConstMetric(c.scrapeSuccess, prometheus.GaugeValue, success)
-	ch <- prometheus.MustNewConstMetric(c.lastScrapeSuccess, prometheus.GaugeValue, 1)
+	ch <- prometheus.MustNewConstMetric(c.scrapeTotal, prometheus.CounterValue, float64(scrapeTotal))
+	ch <- prometheus.MustNewConstMetric(c.scrapeErrorsTotal, prometheus.CounterValue, float64(scrapeErrors))
+	ch <- prometheus.MustNewConstMetric(c.lastScrapeSuccess, prometheus.GaugeValue, success)
 	lastOKUnix := 0.0
-	if !c.lastScrapeTime.IsZero() {
-		lastOKUnix = float64(c.lastScrapeTime.Unix())
+	if !lastSuccess.IsZero() {
+		lastOKUnix = float64(lastSuccess.Unix())
 	}
 	ch <- prometheus.MustNewConstMetric(c.lastScrapeTimestamp, prometheus.GaugeValue, lastOKUnix)
-	lastScrapeSuccessState = true
-	lastScrapeErrorMessage = ""
+	lastScrapeSuccessState = lastOK
+	lastScrapeErrorMessage = lastErr
+
+	// If the last scrape failed, keep behavior consistent: do not emit detailed metrics.
+	if !lastOK {
+		return
+	}
+
+	// Defensive: if we have no tables yet, nothing more to export.
+	if tables == nil {
+		return
+	}
 
 	// 发送详细指标
 	for _, table := range tables {
