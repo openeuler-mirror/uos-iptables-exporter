@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	exporter.Register(NewIptablesCollector())
+	// Collector registration is done by the server after YAML config is loaded.
 }
 
 var (
@@ -35,6 +35,7 @@ func LastScrapeError() string {
 
 type IptablesCollector struct {
 	mu                  sync.Mutex
+	cfg                 exporter.Config
 	lastTables          parser.Tables
 	lastScrapeTime      time.Time
 	getTables           func(ctx context.Context) (parser.Tables, error)
@@ -53,8 +54,9 @@ type IptablesCollector struct {
 	rulePacketsTotal    *prometheus.Desc
 }
 
-func NewIptablesCollector() *IptablesCollector {
+func NewIptablesCollector(cfg exporter.Config) *IptablesCollector {
 	return &IptablesCollector{
+		cfg:       cfg,
 		getTables: parser.GetTables,
 		scrapeDurantion: prometheus.NewDesc(
 			"iptables_exporter_scrape_duration_seconds",
@@ -164,13 +166,13 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(c.scrapeTotal, prometheus.CounterValue, 1)
 
 	// 带超时的数据采集：使用配置中的 ScrapeTimeoutSeconds
-	timeout := time.Duration(exporter.DefaultConfig.ScrapeTimeoutSeconds) * time.Second
+	timeout := time.Duration(c.cfg.ScrapeTimeoutSeconds) * time.Second
 	if timeout <= 0 {
 		timeout = 5 * time.Second
 	}
 
 	// 结果缓存：根据 MinScrapeIntervalSeconds 决定是否复用上一次抓取结果
-	minInterval := time.Duration(exporter.DefaultConfig.MinScrapeIntervalSeconds) * time.Second
+	minInterval := time.Duration(c.cfg.MinScrapeIntervalSeconds) * time.Second
 	var tables parser.Tables
 
 	// 如果设置了最小抓取间隔且上次抓取时间在该间隔内，复用缓存

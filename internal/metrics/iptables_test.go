@@ -13,12 +13,7 @@ import (
 
 // TestMain 为 metrics 包的测试入口，用于在运行所有测试前后做全局设置/清理。
 func TestMain(m *testing.M) {
-	// 由于 parser.GetTables 在另一个包中，这里无法直接重新赋值。
-	// 因此 TestMain 目前只负责避免 exporter.DefaultConfig 为零值导致的
-	// 超时时间、最小抓取间隔为 0 的特殊行为，让测试更可控。
-	exporter.DefaultConfig.ScrapeTimeoutSeconds = 10
-	exporter.DefaultConfig.MinScrapeIntervalSeconds = 0
-
+	// 本包测试使用显式注入的 cfg 创建 collector，不依赖全局运行时配置。
 	m.Run()
 }
 
@@ -53,7 +48,7 @@ func buildTestTables() parser.Tables {
 
 // TestIptablesCollectorDescribe 确认 Describe 输出了预期数量的指标描述符。
 func TestIptablesCollectorDescribe(t *testing.T) {
-	collector := NewIptablesCollector()
+	collector := NewIptablesCollector(exporter.DefaultConfig)
 	descCh := make(chan *prometheus.Desc, 20)
 
 	collector.Describe(descCh)
@@ -74,7 +69,7 @@ func TestIptablesCollectorDescribe(t *testing.T) {
 // TestIptablesCollectorCollectSuccess 验证在 GetTables 成功时，关键指标能够
 // 正常采集且标签与值符合预期。
 func TestIptablesCollectorCollectSuccess(t *testing.T) {
-	collector := NewIptablesCollector()
+	collector := NewIptablesCollector(exporter.DefaultConfig)
 	// 使用构造好的假 tables，避免真实依赖系统 iptables 环境。
 	collector.getTables = func(ctx context.Context) (parser.Tables, error) {
 		return buildTestTables(), nil
@@ -169,10 +164,10 @@ func TestLastScrapeHelpers(t *testing.T) {
 	// 这里故意设置非常短的超时时间，让 parser.GetTables(ctx) 超时，
 	// 从而触发错误更新逻辑。由于我们无法直接控制 parser.GetTables，
 	// 只能在配置层面缩短超时，并允许存在一定的环境差异。
-	exporter.DefaultConfig.ScrapeTimeoutSeconds = 1
-	exporter.DefaultConfig.MinScrapeIntervalSeconds = 0
-
-	collector := NewIptablesCollector()
+	cfg := exporter.DefaultConfig
+	cfg.ScrapeTimeoutSeconds = 1
+	cfg.MinScrapeIntervalSeconds = 0
+	collector := NewIptablesCollector(cfg)
 	reg := prometheus.NewRegistry()
 	_ = reg.Register(collector)
 
@@ -183,10 +178,6 @@ func TestLastScrapeHelpers(t *testing.T) {
 	// 基本一致性，不对具体错误消息内容做断言。
 	_ = LastScrapeOK()
 	_ = LastScrapeError()
-
-	// 将配置恢复到较为保守的值，避免影响其他测试。
-	exporter.DefaultConfig.ScrapeTimeoutSeconds = 10
-	exporter.DefaultConfig.MinScrapeIntervalSeconds = 0
 
 	// 加一个小睡眠，确保 Collect 的时间依赖逻辑不会影响后续测试。
 	time.Sleep(10 * time.Millisecond)
