@@ -38,6 +38,8 @@ type IptablesCollector struct {
 	cfg                 exporter.Config
 	lastTables          parser.Tables
 	lastScrapeTime      time.Time
+	scrapeTotalCount    uint64
+	scrapeErrorCount    uint64
 	getTables           func(ctx context.Context) (parser.Tables, error)
 	scrapeDurantion     *prometheus.Desc
 	scrapeSuccess       *prometheus.Desc
@@ -161,9 +163,11 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 
 	start := time.Now()
 	success := 1.0
-	scrapeErrors := 0.0
-	// 每次 Collect 都增加一次抓取总数
-	ch <- prometheus.MustNewConstMetric(c.scrapeTotal, prometheus.CounterValue, 1)
+
+	// Counter semantics: these must be monotonically increasing.
+	c.scrapeTotalCount++
+	ch <- prometheus.MustNewConstMetric(c.scrapeTotal, prometheus.CounterValue, float64(c.scrapeTotalCount))
+	ch <- prometheus.MustNewConstMetric(c.scrapeErrorsTotal, prometheus.CounterValue, float64(c.scrapeErrorCount))
 
 	// 带超时的数据采集：使用配置中的 ScrapeTimeoutSeconds
 	timeout := time.Duration(c.cfg.ScrapeTimeoutSeconds) * time.Second
@@ -189,11 +193,11 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 		tables, err = c.getTables(ctx)
 		if err != nil {
 			success = 0
-			scrapeErrors = 1
+			c.scrapeErrorCount++
 			lastScrapeSuccessState = false
 			lastScrapeErrorMessage = err.Error()
 			// 记录抓取错误总数以及最近一次抓取失败
-			ch <- prometheus.MustNewConstMetric(c.scrapeErrorsTotal, prometheus.CounterValue, scrapeErrors)
+			ch <- prometheus.MustNewConstMetric(c.scrapeErrorsTotal, prometheus.CounterValue, float64(c.scrapeErrorCount))
 			ch <- prometheus.MustNewConstMetric(c.scrapeSuccess, prometheus.GaugeValue, success)
 			ch <- prometheus.MustNewConstMetric(c.lastScrapeSuccess, prometheus.GaugeValue, 0)
 			// 失败时不更新时间戳，只保留最近一次成功的时间戳
@@ -209,7 +213,11 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(c.scrapeDurantion, prometheus.GaugeValue, time.Since(start).Seconds())
 	ch <- prometheus.MustNewConstMetric(c.scrapeSuccess, prometheus.GaugeValue, success)
 	ch <- prometheus.MustNewConstMetric(c.lastScrapeSuccess, prometheus.GaugeValue, 1)
-	ch <- prometheus.MustNewConstMetric(c.lastScrapeTimestamp, prometheus.GaugeValue, float64(time.Now().Unix()))
+	lastOKUnix := 0.0
+	if !c.lastScrapeTime.IsZero() {
+		lastOKUnix = float64(c.lastScrapeTime.Unix())
+	}
+	ch <- prometheus.MustNewConstMetric(c.lastScrapeTimestamp, prometheus.GaugeValue, lastOKUnix)
 	lastScrapeSuccessState = true
 	lastScrapeErrorMessage = ""
 
