@@ -48,7 +48,8 @@ func buildTestTables() parser.Tables {
 
 // TestIptablesCollectorDescribe 确认 Describe 输出了预期数量的指标描述符。
 func TestIptablesCollectorDescribe(t *testing.T) {
-	collector := NewIptablesCollector(exporter.DefaultConfig)
+	scraper := NewIptablesScraper(exporter.DefaultConfig)
+	collector := NewIptablesCollectorWithScraper(scraper)
 	descCh := make(chan *prometheus.Desc, 20)
 
 	collector.Describe(descCh)
@@ -69,11 +70,15 @@ func TestIptablesCollectorDescribe(t *testing.T) {
 // TestIptablesCollectorCollectSuccess 验证在 GetTables 成功时，关键指标能够
 // 正常采集且标签与值符合预期。
 func TestIptablesCollectorCollectSuccess(t *testing.T) {
-	collector := NewIptablesCollector(exporter.DefaultConfig)
-	// 使用构造好的假 tables，避免真实依赖系统 iptables 环境。
-	collector.getTables = func(ctx context.Context) (parser.Tables, error) {
+	cfg := exporter.DefaultConfig
+	cfg.MinScrapeIntervalSeconds = 0
+	scraper := NewIptablesScraper(cfg)
+	scraper.SetGetTables(func(ctx context.Context) (parser.Tables, error) {
 		return buildTestTables(), nil
-	}
+	})
+	scraper.ScrapeNow(context.Background())
+
+	collector := NewIptablesCollectorWithScraper(scraper)
 
 	// 构造一个自定义 registry，仅注册当前 collector，避免受到 init() 中
 	// 全局 Register 的影响。
@@ -167,7 +172,13 @@ func TestLastScrapeHelpers(t *testing.T) {
 	cfg := exporter.DefaultConfig
 	cfg.ScrapeTimeoutSeconds = 1
 	cfg.MinScrapeIntervalSeconds = 0
-	collector := NewIptablesCollector(cfg)
+	scraper := NewIptablesScraper(cfg)
+	scraper.SetGetTables(func(ctx context.Context) (parser.Tables, error) {
+		return nil, context.DeadlineExceeded
+	})
+	scraper.ScrapeNow(context.Background())
+
+	collector := NewIptablesCollectorWithScraper(scraper)
 	reg := prometheus.NewRegistry()
 	_ = reg.Register(collector)
 
