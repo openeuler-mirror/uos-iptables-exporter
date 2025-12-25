@@ -37,6 +37,8 @@ type Server struct {
 	Error        error
 	callback     sync.Once
 	server       *http.Server
+	scraper      *metrics.IptablesScraper
+	scrapeCancel context.CancelFunc
 }
 
 func NewServer(name, version string) *Server {
@@ -137,6 +139,12 @@ func (s *Server) getName() string {
 }
 
 func (s *Server) setupHttpServer() error {
+	// Start background scraper (not used by collector yet; wired in a later commit).
+	ctx, cancel := context.WithCancel(context.Background())
+	s.scrapeCancel = cancel
+	s.scraper = metrics.NewIptablesScraper(s.CommonConfig)
+	s.scraper.Start(ctx)
+
 	// Register collectors with the YAML-loaded config before exposing metrics.
 	exporter.Register(metrics.NewIptablesCollector(s.CommonConfig))
 	exporter.RegisterPrometheus(s.promReg)
@@ -230,6 +238,9 @@ func (s *Server) PrintVersion() {
 func (s *Server) Stop() {
 	logrus.Info("Stopping Server")
 	logger.LogOutput("Shutting down server...")
+	if s.scrapeCancel != nil {
+		s.scrapeCancel()
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
