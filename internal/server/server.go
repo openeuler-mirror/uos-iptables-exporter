@@ -137,6 +137,8 @@ func (s *Server) getName() string {
 }
 
 func (s *Server) setupHttpServer() error {
+	// Register collectors with the YAML-loaded config before exposing metrics.
+	exporter.Register(metrics.NewIptablesCollector(s.CommonConfig))
 	exporter.RegisterPrometheus(s.promReg)
 	mux := http.NewServeMux()
 
@@ -185,10 +187,6 @@ func (s *Server) setupHttpServer() error {
 	mux.Handle("/favicon.ico", favicon)
 	s.server = server
 	logrus.Infof("Server is running on %s", addr)
-	if err != nil {
-		logrus.Errorf("Configuring the exporter failed: %v", err)
-		return err
-	}
 	return nil
 }
 
