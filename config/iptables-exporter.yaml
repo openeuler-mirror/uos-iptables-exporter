@@ -4,5 +4,7 @@ metricsPath: "/metrics"
 log:
   level: "debug"
 
+# Timeout for a single iptables-save execution.
 scrapeTimeoutSeconds: 20
+# Minimum interval between real background scrapes.
 minScrapeIntervalSeconds: 10

@@ -68,7 +68,9 @@ log:
 - `address`：Exporter 监听地址，例如 `0.0.0.0`；
 - `port`：监听端口，例如 `9077`；
 - `metricsPath`：Prometheus 抓取指标的路径，默认 `/metrics`；
-- `log.level`：日志级别，`debug` / `info` / `warn` 等。
+- `log.level`：日志级别，`debug` / `info` / `warn` 等；
+- `scrapeTimeoutSeconds`：单次执行 `iptables-save -c` 的超时时间，默认 `20` 秒；
+- `minScrapeIntervalSeconds`：后台真实抓取的最小间隔，默认 `10` 秒，用于避免高频重复执行 `iptables-save`。
 
 > 注意：如果配置文件不存在或格式错误，程序会在启动时直接报错退出。
 

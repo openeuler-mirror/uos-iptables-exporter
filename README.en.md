@@ -68,6 +68,8 @@ Common fields:
 - `port`: listen port, e.g. `9077`.
 - `metricsPath`: metrics endpoint path for Prometheus, default `/metrics`.
 - `log.level`: log level, such as `debug` / `info` / `warn`.
+- `scrapeTimeoutSeconds`: timeout for a single `iptables-save -c` execution, default `20` seconds.
+- `minScrapeIntervalSeconds`: minimum interval between real background scrapes, default `10` seconds, to avoid running `iptables-save` too frequently.
 
 > Note: if the config file is missing or invalid, the exporter will fail fast
 > during startup instead of running with implicit defaults.
