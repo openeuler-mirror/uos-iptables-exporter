@@ -2,6 +2,8 @@ package server
 
 import (
 	"net/http"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Request struct {
@@ -21,7 +23,14 @@ func NewRequest(w http.ResponseWriter, r *http.Request) *Request {
 }
 
 func (r *Request) Fail(status int) {
-	r.ResponseWriter.Header().Set("Content-Type", "text/html")
+	message := http.StatusText(status)
+	if r.Error != nil {
+		message = r.Error.Error()
+	} else {
+		logrus.WithField("status", status).Warn("request failed without explicit error")
+	}
+
+	r.ResponseWriter.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	r.ResponseWriter.WriteHeader(status)
-	r.ResponseWriter.Write([]byte(r.Error.Error()))
+	_, _ = r.ResponseWriter.Write([]byte(message))
 }
