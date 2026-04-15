@@ -22,7 +22,7 @@ func ValidateURI(uri string) error {
 		return url.InvalidHostError("missing scheme")
 	}
 
-	if !strings.HasPrefix(u.Scheme, "http") {
+	if !strings.EqualFold(u.Scheme, "http") && !strings.EqualFold(u.Scheme, "https") {
 		return url.InvalidHostError("scheme must be http or https")
 	}
 
