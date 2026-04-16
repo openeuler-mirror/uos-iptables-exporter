@@ -5,6 +5,7 @@ package ratelimit
 
 import (
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -18,6 +19,8 @@ type RateLimiter struct {
 	tokens chan struct{}
 	limit  time.Duration
 	ticker *time.Ticker
+	done   chan struct{}
+	stop   sync.Once
 }
 
 func NewRateLimiter(limit time.Duration, chanSize int) (*RateLimiter, error) {
@@ -31,6 +34,7 @@ func NewRateLimiter(limit time.Duration, chanSize int) (*RateLimiter, error) {
 		tokens: make(chan struct{}, chanSize),
 		limit:  limit,
 		ticker: time.NewTicker(limit),
+		done:   make(chan struct{}),
 	}
 
 	for i := 0; i < chanSize; i++ {
@@ -42,10 +46,15 @@ func NewRateLimiter(limit time.Duration, chanSize int) (*RateLimiter, error) {
 }
 
 func (rl *RateLimiter) startRefreshTokens() {
-	for range rl.ticker.C {
+	for {
 		select {
-		case rl.tokens <- struct{}{}:
-		default:
+		case <-rl.done:
+			return
+		case <-rl.ticker.C:
+			select {
+			case rl.tokens <- struct{}{}:
+			default:
+			}
 		}
 	}
 }
@@ -64,10 +73,12 @@ func (rl *RateLimiter) Get() error {
 }
 
 func (rl *RateLimiter) Stop() {
-	rl.ticker.Stop()
-	close(rl.tokens)
-	clearChannel(rl.tokens)
-
+	rl.stop.Do(func() {
+		close(rl.done)
+		rl.ticker.Stop()
+		close(rl.tokens)
+		clearChannel(rl.tokens)
+	})
 }
 
 func clearChannel(ch chan struct{}) {
