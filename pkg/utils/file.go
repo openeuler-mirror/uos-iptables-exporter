@@ -7,5 +7,8 @@ import "os"
 
 func FileExists(path string) bool {
 	_, err := os.Stat(path)
-	return err == nil
+	if err == nil {
+		return true
+	}
+	return !os.IsNotExist(err)
 }
