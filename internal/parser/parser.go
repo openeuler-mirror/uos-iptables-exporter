@@ -161,10 +161,12 @@ func parseCounters(token string) (uint64, uint64, bool) {
 	parts[0] = strings.TrimSpace(parts[0])
 	parts[1] = strings.TrimSpace(parts[1])
 
-	var packets, bytes uint64
-	_, err1 := fmt.Sscanf(parts[0], "%d", &packets)
-	_, err2 := fmt.Sscanf(parts[1], "%d", &bytes)
-	if err1 != nil || err2 != nil {
+	packets, err := strconv.ParseUint(parts[0], 10, 64)
+	if err != nil {
+		return 0, 0, false
+	}
+	bytes, err := strconv.ParseUint(parts[1], 10, 64)
+	if err != nil {
 		return 0, 0, false
 	}
 	return packets, bytes, true
