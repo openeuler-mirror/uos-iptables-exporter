@@ -14,7 +14,7 @@ func NewFavicon() *favicon {
 
 func (f *favicon) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/x-icon")
-	w.Write(faviconBodys)
+	_, _ = w.Write(f.body)
 }
 
 var (
