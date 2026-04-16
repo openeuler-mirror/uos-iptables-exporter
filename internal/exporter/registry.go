@@ -49,6 +49,11 @@ func (r *Registry) GetMetrics() []Metric {
 }
 
 func (r *Registry) Describe(descs chan<- *prometheus.Desc) {
+	for _, metric := range r.GetMetrics() {
+		if collector, ok := metric.(prometheus.Collector); ok {
+			collector.Describe(descs)
+		}
+	}
 }
 
 func (r *Registry) Collect(ch chan<- prometheus.Metric) {
