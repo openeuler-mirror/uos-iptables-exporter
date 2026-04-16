@@ -24,6 +24,8 @@ func (p *ruleParser) flush() {
 			p.outIface = p.currentValues[0]
 		case "-j", "--jump":
 			p.target = p.currentValues[0]
+		case "-p", "--protocol":
+			p.protocol = p.currentValues[0]
 		default:
 			p.flags = append(p.flags, p.current)
 			p.flags = append(p.flags, p.currentValues...)
