@@ -24,6 +24,7 @@ type Rule struct {
 	Bytes    uint64
 	InIface  string
 	OutIface string
+	Target   string
 	Index    int
 }
 
@@ -45,6 +46,7 @@ type ruleParser struct {
 	flags         []string
 	inIface       string
 	outIface      string
+	target        string
 }
 
 type ParseError struct {
