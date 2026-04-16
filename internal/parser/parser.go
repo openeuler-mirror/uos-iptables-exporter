@@ -226,6 +226,7 @@ func (p *parser) handleRule(line string) {
 		InIface:  subParser.inIface,
 		OutIface: subParser.outIface,
 		Target:   subParser.target,
+		Protocol: subParser.protocol,
 	}
 	chain := p.currentTable.Chains[subParser.chain]
 	r.Index = len(chain.Rules)
@@ -259,6 +260,7 @@ func (p *parser) handleRuleWithCounter(ruleLine string, packets, bytes uint64) {
 		InIface:  subParser.inIface,
 		OutIface: subParser.outIface,
 		Target:   subParser.target,
+		Protocol: subParser.protocol,
 	}
 	chain := p.currentTable.Chains[subParser.chain]
 	r.Index = len(chain.Rules)

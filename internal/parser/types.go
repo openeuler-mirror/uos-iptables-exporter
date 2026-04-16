@@ -25,6 +25,7 @@ type Rule struct {
 	InIface  string
 	OutIface string
 	Target   string
+	Protocol string
 	Index    int
 }
 
@@ -47,6 +48,7 @@ type ruleParser struct {
 	inIface       string
 	outIface      string
 	target        string
+	protocol      string
 }
 
 type ParseError struct {
