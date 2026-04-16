@@ -64,6 +64,9 @@ func ParseIptablesSave(r io.Reader) (Tables, error) {
 	for {
 		line, err := reader.ReadString('\n')
 		if err == io.EOF {
+			if strings.TrimSpace(line) != "" {
+				parser.handleLine(strings.TrimSpace(line))
+			}
 			break
 		}
 		if err != nil {
