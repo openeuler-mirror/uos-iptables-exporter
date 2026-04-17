@@ -25,9 +25,10 @@ Exporter 会调用 `iptables-save -c`，解析输出中的表 / 链 / 规则级�
 
 在项目根目录 `uos-iptables-exporter` 下执行：
 
-1. 拉取依赖并编译：
-	- 使用 `make build`（推荐）；或
-	- 使用 `go build ./...`。
+- 使用 `make fmt` 格式化 Go 代码；
+- 使用 `make test` 运行测试；
+- 使用 `make vet` 做静态检查；
+- 使用 `make build`（推荐）；或使用 `go build ./...`。
 
 使用 `make build` 时，编译好的二进制通常位于：
 

@@ -11,7 +11,10 @@ MODULES_DIR := modules
 GO := go
 GO_BUILD := $(GO) build
 GO_CLEAN := $(GO) clean
+GO_FMT := $(GO) fmt
 GO_MOD := $(GO) mod
+GO_TEST := $(GO) test
+GO_VET := $(GO) vet
 GO_FLAGS := -ldflags="-s -w -X main.Version=$(VERSION)"
 
 # 安装路径（支持自定义，默认为 /usr/local/bin）
@@ -36,6 +39,18 @@ build: $(BIN_DIR) before_build
 	@echo "Building $(NAME)..."
 	$(GO_BUILD) $(GO_FLAGS) -o $(BIN_DIR)/$(NAME) $(SRC_DIR)
 
+fmt:
+	@echo "Formatting Go packages..."
+	$(GO_FMT) ./...
+
+test:
+	@echo "Running Go tests..."
+	$(GO_TEST) ./...
+
+vet:
+	@echo "Running go vet..."
+	$(GO_VET) ./...
+
 # 安装到指定路径
 install: build
 	@echo "Installing $(NAME) to $(DESTDIR)$(INSTALL_BIN_DIR)..."
@@ -56,11 +71,14 @@ help:
 	@echo "Available targets:"
 	@echo "  all       - Build the project (default)"
 	@echo "  build     - Compile the main program"
+	@echo "  fmt       - Format all Go packages"
+	@echo "  test      - Run all Go tests"
+	@echo "  vet       - Run go vet on all Go packages"
 	@echo "  install   - Install the binary to /usr/local/bin"
 	@echo "  clean     - Remove generated files"
 	@echo "  help      - Show this help message"
 
-.PHONY: all build install clean help
+.PHONY: all build fmt test vet install clean help
 
 
 

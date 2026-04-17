@@ -24,9 +24,10 @@ This document focuses on how to **build**, **deploy** and **use** the exporter.
 
 From the project root directory `uos-iptables-exporter`:
 
-1. Fetch dependencies and build:
-   - `make build` (recommended), or
-   - `go build ./...`.
+- Run `make fmt` to format Go code.
+- Run `make test` to execute the test suite.
+- Run `make vet` to run static analysis.
+- Run `make build` (recommended), or `go build ./...`.
 
 When using `make build`, the binary is usually placed at:
 
