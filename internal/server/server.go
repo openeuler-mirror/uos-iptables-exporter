@@ -92,6 +92,12 @@ func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 		Message string `json:"message"`
 	}
 
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+
 	statusCode := http.StatusOK
 	resp := healthzResponse{
 		Status:  "ok",
