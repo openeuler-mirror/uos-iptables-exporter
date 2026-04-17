@@ -101,3 +101,71 @@ func TestParseRuleWithOutInterface(t *testing.T) {
 		t.Errorf("unexpected counters: packets=%d bytes=%d", r.Packets, r.Bytes)
 	}
 }
+
+func TestParseRuleWithSourceAndDestination(t *testing.T) {
+	line := "[8:256] -A INPUT -s 192.168.1.10/32 -d 10.0.0.0/24 -j ACCEPT"
+
+	p := &parser{
+		result:           make(Tables),
+		currentTableName: "filter",
+		currentTable: &Table{
+			Name:   "filter",
+			Chains: make(map[string]Chain),
+		},
+	}
+	p.currentTable.Chains["INPUT"] = Chain{Name: "INPUT", Rules: []Rule{}}
+
+	fields := strings.Fields(strings.TrimSpace(line))
+	if len(fields) < 3 {
+		t.Fatalf("unexpected fields length: %d", len(fields))
+	}
+
+	p.handleRuleWithCounter(strings.Join(fields[1:], " "), 8, 256)
+
+	rules := p.currentTable.Chains["INPUT"].Rules
+	if len(rules) != 1 {
+		t.Fatalf("expected 1 rule, got %d", len(rules))
+	}
+
+	r := rules[0]
+	if r.Source != "192.168.1.10/32" {
+		t.Fatalf("expected Source=192.168.1.10/32, got %q", r.Source)
+	}
+	if r.Destination != "10.0.0.0/24" {
+		t.Fatalf("expected Destination=10.0.0.0/24, got %q", r.Destination)
+	}
+}
+
+func TestParseRuleWithLongAddressFlags(t *testing.T) {
+	line := "[3:128] -A OUTPUT --source 2001:db8::1 --destination 2001:db8::2 -j ACCEPT"
+
+	p := &parser{
+		result:           make(Tables),
+		currentTableName: "filter",
+		currentTable: &Table{
+			Name:   "filter",
+			Chains: make(map[string]Chain),
+		},
+	}
+	p.currentTable.Chains["OUTPUT"] = Chain{Name: "OUTPUT", Rules: []Rule{}}
+
+	fields := strings.Fields(strings.TrimSpace(line))
+	if len(fields) < 3 {
+		t.Fatalf("unexpected fields length: %d", len(fields))
+	}
+
+	p.handleRuleWithCounter(strings.Join(fields[1:], " "), 3, 128)
+
+	rules := p.currentTable.Chains["OUTPUT"].Rules
+	if len(rules) != 1 {
+		t.Fatalf("expected 1 rule, got %d", len(rules))
+	}
+
+	r := rules[0]
+	if r.Source != "2001:db8::1" {
+		t.Fatalf("expected Source=2001:db8::1, got %q", r.Source)
+	}
+	if r.Destination != "2001:db8::2" {
+		t.Fatalf("expected Destination=2001:db8::2, got %q", r.Destination)
+	}
+}

@@ -222,11 +222,13 @@ func (p *parser) handleRule(line string) {
 		Packets: subParser.packets,
 		Bytes:   subParser.bytes,
 		// 保留完整规则文本（去掉计数器），便于在指标中直接查看
-		RuleSpec: line,
-		InIface:  subParser.inIface,
-		OutIface: subParser.outIface,
-		Target:   subParser.target,
-		Protocol: subParser.protocol,
+		RuleSpec:    line,
+		InIface:     subParser.inIface,
+		OutIface:    subParser.outIface,
+		Source:      subParser.source,
+		Destination: subParser.destination,
+		Target:      subParser.target,
+		Protocol:    subParser.protocol,
 	}
 	chain := p.currentTable.Chains[subParser.chain]
 	r.Index = len(chain.Rules)
@@ -256,11 +258,13 @@ func (p *parser) handleRuleWithCounter(ruleLine string, packets, bytes uint64) {
 		Packets: subParser.packets,
 		Bytes:   subParser.bytes,
 		// 这里 ruleLine 已经是不带计数器的 "-A ..." 形式
-		RuleSpec: ruleLine,
-		InIface:  subParser.inIface,
-		OutIface: subParser.outIface,
-		Target:   subParser.target,
-		Protocol: subParser.protocol,
+		RuleSpec:    ruleLine,
+		InIface:     subParser.inIface,
+		OutIface:    subParser.outIface,
+		Source:      subParser.source,
+		Destination: subParser.destination,
+		Target:      subParser.target,
+		Protocol:    subParser.protocol,
 	}
 	chain := p.currentTable.Chains[subParser.chain]
 	r.Index = len(chain.Rules)

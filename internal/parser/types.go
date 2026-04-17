@@ -19,14 +19,16 @@ type Chain struct {
 }
 
 type Rule struct {
-	RuleSpec string // 规则的完整文本（去掉前缀计数器），例如 "-A INPUT -i ens3 -j ACCEPT"
-	Packets  uint64
-	Bytes    uint64
-	InIface  string
-	OutIface string
-	Target   string
-	Protocol string
-	Index    int
+	RuleSpec    string // 规则的完整文本（去掉前缀计数器），例如 "-A INPUT -i ens3 -j ACCEPT"
+	Packets     uint64
+	Bytes       uint64
+	InIface     string
+	OutIface    string
+	Source      string
+	Destination string
+	Target      string
+	Protocol    string
+	Index       int
 }
 
 type parser struct {
@@ -47,6 +49,8 @@ type ruleParser struct {
 	flags         []string
 	inIface       string
 	outIface      string
+	source        string
+	destination   string
 	target        string
 	protocol      string
 }
