@@ -15,8 +15,9 @@ import (
 // IptablesScraper runs iptables scrapes in the background and keeps the latest
 // snapshot for collectors to read without blocking Prometheus scrapes.
 type IptablesScraper struct {
-	cfg       exporter.Config
-	getTables func(ctx context.Context) (parser.Tables, error)
+	cfg         exporter.Config
+	getTables   func(ctx context.Context) (parser.Tables, error)
+	getTablesMu sync.RWMutex
 
 	mu           sync.RWMutex
 	lastTables   parser.Tables
@@ -42,9 +43,15 @@ func NewIptablesScraper(cfg exporter.Config) *IptablesScraper {
 
 // SetGetTables overrides the table getter (primarily for tests).
 func (s *IptablesScraper) SetGetTables(getTables func(ctx context.Context) (parser.Tables, error)) {
-	s.inflightMu.Lock()
+	s.getTablesMu.Lock()
 	s.getTables = getTables
-	s.inflightMu.Unlock()
+	s.getTablesMu.Unlock()
+}
+
+func (s *IptablesScraper) currentGetTables() func(ctx context.Context) (parser.Tables, error) {
+	s.getTablesMu.RLock()
+	defer s.getTablesMu.RUnlock()
+	return s.getTables
 }
 
 func (s *IptablesScraper) LastOK() bool {
@@ -130,7 +137,7 @@ func (s *IptablesScraper) runScrape(ctx context.Context) {
 	defer cancel()
 
 	start := time.Now()
-	get := s.getTables
+	get := s.currentGetTables()
 	if get == nil {
 		get = parser.GetTables
 	}
