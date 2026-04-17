@@ -27,6 +27,11 @@ import (
 
 var defaultSeverVersion = "1.0.0"
 
+const (
+	defaultReadHeaderTimeout = 5 * time.Second
+	defaultIdleTimeout       = 60 * time.Second
+)
+
 type Server struct {
 	Name         string
 	Version      string
@@ -166,8 +171,10 @@ func (s *Server) setupHttpServer() error {
 	schema := "http"
 	fmt.Fprintf(os.Stdout, "Listening and serving %s on [%s://%s]\n", s.Name, schema, addr)
 	server := &http.Server{
-		Addr:    addr,
-		Handler: mux,
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: defaultReadHeaderTimeout,
+		IdleTimeout:       defaultIdleTimeout,
 	}
 	landConfig := LandingPageConfig{
 		Name:    s.Name,
