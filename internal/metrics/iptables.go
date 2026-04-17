@@ -16,18 +16,30 @@ func init() {
 }
 
 var (
+	lastScrapeStateMu      sync.RWMutex
 	lastScrapeSuccessState = true
 	lastScrapeErrorMessage = ""
 )
 
 // LastScrapeOK returns whether the last iptables scrape succeeded.
 func LastScrapeOK() bool {
+	lastScrapeStateMu.RLock()
+	defer lastScrapeStateMu.RUnlock()
 	return lastScrapeSuccessState
 }
 
 // LastScrapeError returns the error message of the last failed scrape (empty if none).
 func LastScrapeError() string {
+	lastScrapeStateMu.RLock()
+	defer lastScrapeStateMu.RUnlock()
 	return lastScrapeErrorMessage
+}
+
+func setLastScrapeState(ok bool, errMessage string) {
+	lastScrapeStateMu.Lock()
+	defer lastScrapeStateMu.Unlock()
+	lastScrapeSuccessState = ok
+	lastScrapeErrorMessage = errMessage
 }
 
 type IptablesCollector struct {
@@ -168,8 +180,7 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.scrapeErrorsTotal, prometheus.CounterValue, 0)
 		ch <- prometheus.MustNewConstMetric(c.lastScrapeSuccess, prometheus.GaugeValue, 0)
 		ch <- prometheus.MustNewConstMetric(c.lastScrapeTimestamp, prometheus.GaugeValue, 0)
-		lastScrapeSuccessState = false
-		lastScrapeErrorMessage = "scraper not configured"
+		setLastScrapeState(false, "scraper not configured")
 		return
 	}
 
@@ -191,8 +202,7 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 		lastOKUnix = float64(lastSuccess.Unix())
 	}
 	ch <- prometheus.MustNewConstMetric(c.lastScrapeTimestamp, prometheus.GaugeValue, lastOKUnix)
-	lastScrapeSuccessState = lastOK
-	lastScrapeErrorMessage = lastErr
+	setLastScrapeState(lastOK, lastErr)
 
 	// If the last scrape failed, keep behavior consistent: do not emit detailed metrics.
 	if !lastOK {

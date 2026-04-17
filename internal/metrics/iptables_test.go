@@ -11,6 +11,17 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+func gatherCollector(t *testing.T, collector *IptablesCollector) {
+	t.Helper()
+	reg := prometheus.NewRegistry()
+	if err := reg.Register(collector); err != nil {
+		t.Fatalf("failed to register collector: %v", err)
+	}
+	if _, err := reg.Gather(); err != nil {
+		t.Fatalf("failed to gather metrics: %v", err)
+	}
+}
+
 // TestMain 为 metrics 包的测试入口，用于在运行所有测试前后做全局设置/清理。
 func TestMain(m *testing.M) {
 	// 本包测试使用显式注入的 cfg 创建 collector，不依赖全局运行时配置。
@@ -192,4 +203,37 @@ func TestLastScrapeHelpers(t *testing.T) {
 
 	// 加一个小睡眠，确保 Collect 的时间依赖逻辑不会影响后续测试。
 	time.Sleep(10 * time.Millisecond)
+}
+
+func TestCollectorWithoutScraperUpdatesLastScrapeState(t *testing.T) {
+	setLastScrapeState(true, "")
+	collector := NewIptablesCollectorWithScraper(nil)
+
+	gatherCollector(t, collector)
+
+	if LastScrapeOK() {
+		t.Fatal("expected LastScrapeOK to be false when scraper is missing")
+	}
+	if got := LastScrapeError(); got != "scraper not configured" {
+		t.Fatalf("unexpected LastScrapeError: got %q", got)
+	}
+}
+
+func TestCollectorSuccessClearsLastScrapeError(t *testing.T) {
+	setLastScrapeState(false, "previous scrape failed")
+	scraper := NewIptablesScraper(exporter.DefaultConfig)
+	scraper.SetGetTables(func(ctx context.Context) (parser.Tables, error) {
+		return buildTestTables(), nil
+	})
+	scraper.ScrapeNow(context.Background())
+
+	collector := NewIptablesCollectorWithScraper(scraper)
+	gatherCollector(t, collector)
+
+	if !LastScrapeOK() {
+		t.Fatal("expected LastScrapeOK to be true after a successful collect")
+	}
+	if got := LastScrapeError(); got != "" {
+		t.Fatalf("expected LastScrapeError to be cleared, got %q", got)
+	}
 }
