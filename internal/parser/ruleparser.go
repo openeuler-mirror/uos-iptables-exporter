@@ -22,6 +22,10 @@ func (p *ruleParser) flush() {
 		case "-o", "--out-interface":
 			// 输出接口
 			p.outIface = p.currentValues[0]
+		case "-s", "--source":
+			p.source = p.currentValues[0]
+		case "-d", "--destination":
+			p.destination = p.currentValues[0]
 		case "-j", "--jump":
 			p.target = p.currentValues[0]
 		case "-p", "--protocol":
