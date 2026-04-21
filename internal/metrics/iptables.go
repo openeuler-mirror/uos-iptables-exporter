@@ -140,13 +140,13 @@ func NewIptablesCollectorWithScraper(scraper *IptablesScraper) *IptablesCollecto
 		ruleBytesTotal: prometheus.NewDesc(
 			"iptables_rule_bytes_total",
 			"Total bytes matching a rule.",
-			[]string{"table", "chain", "in_iface", "out_iface"},
+			[]string{"table", "chain", "in_iface", "out_iface", "source", "destination"},
 			nil,
 		),
 		rulePacketsTotal: prometheus.NewDesc(
 			"iptables_rule_packets_total",
 			"Total packets matching a rule.",
-			[]string{"table", "chain", "in_iface", "out_iface"},
+			[]string{"table", "chain", "in_iface", "out_iface", "source", "destination"},
 			nil,
 		),
 	}
@@ -276,6 +276,8 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 					chain.Name,
 					rule.InIface,
 					rule.OutIface,
+					rule.Source,
+					rule.Destination,
 				)
 				ch <- prometheus.MustNewConstMetric(
 					c.ruleBytesTotal,
@@ -285,6 +287,8 @@ func (c *IptablesCollector) Collect(ch chan<- prometheus.Metric) {
 					chain.Name,
 					rule.InIface,
 					rule.OutIface,
+					rule.Source,
+					rule.Destination,
 				)
 			}
 		}
