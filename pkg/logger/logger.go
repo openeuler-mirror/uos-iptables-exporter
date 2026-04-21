@@ -38,18 +38,14 @@ func Init(config fileLogConfig) {
 		logrus.SetFormatter(&formatter.Formatter{})
 		logrus.SetOutput(config.FileRotator)
 	}
-	switch level := strings.ToLower(config.level); level {
-	case "debug":
-		logrus.SetLevel(logrus.DebugLevel)
-	case "info":
-		logrus.SetLevel(logrus.InfoLevel)
-	case "warn":
+	level, ok := parseLevel(config.level)
+	if !ok {
 		logrus.SetLevel(logrus.WarnLevel)
-	default:
-		logrus.SetLevel(logrus.WarnLevel)
-		logrus.Warnf("unknown log level: %s, use default level: warn", level)
-		logrus.Warnf("support level is [debug,info,warn]")
+		logrus.Warnf("unknown log level: %s, use default level: warn", strings.ToLower(config.level))
+		logrus.Warnf("support level is [debug,info,warn,warning,error]")
+		return
 	}
+	logrus.SetLevel(level)
 }
 
 func InitDefaultLog() {
@@ -59,4 +55,19 @@ func InitDefaultLog() {
 	logrus.SetFormatter(&logrus.TextFormatter{
 		DisableTimestamp: true,
 	})
+}
+
+func parseLevel(level string) (logrus.Level, bool) {
+	switch strings.ToLower(level) {
+	case "debug":
+		return logrus.DebugLevel, true
+	case "info":
+		return logrus.InfoLevel, true
+	case "warn", "warning":
+		return logrus.WarnLevel, true
+	case "error":
+		return logrus.ErrorLevel, true
+	default:
+		return logrus.WarnLevel, false
+	}
 }
