@@ -26,7 +26,7 @@ func (p *ruleParser) flush() {
 			p.source = p.currentValues[0]
 		case "-d", "--destination":
 			p.destination = p.currentValues[0]
-		case "-j", "--jump":
+		case "-g", "--goto", "-j", "--jump":
 			p.target = p.currentValues[0]
 		case "-p", "--protocol":
 			p.protocol = p.currentValues[0]
