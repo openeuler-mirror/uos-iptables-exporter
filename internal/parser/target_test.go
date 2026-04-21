@@ -19,3 +19,18 @@ func TestRuleParserCapturesJumpTarget(t *testing.T) {
 		t.Fatalf("unexpected target: got %q", rp.target)
 	}
 }
+
+func TestRuleParserCapturesGotoTarget(t *testing.T) {
+	var rp ruleParser
+	for _, token := range []string{"-A", "INPUT", "-g", "CUSTOM"} {
+		rp.handleToken(token)
+	}
+	rp.flush()
+
+	if rp.chain != "INPUT" {
+		t.Fatalf("unexpected chain: got %q", rp.chain)
+	}
+	if rp.target != "CUSTOM" {
+		t.Fatalf("unexpected target: got %q", rp.target)
+	}
+}
