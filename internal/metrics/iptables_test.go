@@ -41,8 +41,8 @@ func buildTestTables() parser.Tables {
 					Packets: 100,
 					Bytes:   2048,
 					Rules: []parser.Rule{
-						{Packets: 60, Bytes: 1024, InIface: "eth0", OutIface: ""},
-						{Packets: 40, Bytes: 1024, InIface: "eth1", OutIface: ""},
+						{Packets: 60, Bytes: 1024, InIface: "eth0", OutIface: "", Source: "10.0.0.1/32", Destination: "10.0.0.2/32"},
+						{Packets: 40, Bytes: 1024, InIface: "eth1", OutIface: "", Source: "10.0.0.3/32", Destination: "10.0.0.4/32"},
 					},
 				},
 				"FORWARD": {
@@ -123,6 +123,51 @@ func TestIptablesCollectorCollectSuccess(t *testing.T) {
 	if !foundSuccess {
 		t.Fatalf("metric iptables_exporter_scrape_success not found in gathered metrics")
 	}
+}
+
+func TestRuleMetricsIncludeAddressLabels(t *testing.T) {
+	cfg := exporter.DefaultConfig
+	cfg.MinScrapeIntervalSeconds = 0
+	scraper := NewIptablesScraper(cfg)
+	scraper.SetGetTables(func(ctx context.Context) (parser.Tables, error) {
+		return buildTestTables(), nil
+	})
+	scraper.ScrapeNow(context.Background())
+
+	collector := NewIptablesCollectorWithScraper(scraper)
+	reg := prometheus.NewRegistry()
+	if err := reg.Register(collector); err != nil {
+		t.Fatalf("failed to register collector: %v", err)
+	}
+
+	metricFamilies, err := reg.Gather()
+	if err != nil {
+		t.Fatalf("failed to gather metrics: %v", err)
+	}
+
+	for _, mf := range metricFamilies {
+		if mf.GetName() != "iptables_rule_packets_total" {
+			continue
+		}
+		if len(mf.GetMetric()) == 0 {
+			t.Fatalf("iptables_rule_packets_total has no metrics")
+		}
+
+		labels := map[string]string{}
+		for _, label := range mf.GetMetric()[0].GetLabel() {
+			labels[label.GetName()] = label.GetValue()
+		}
+
+		if labels["source"] == "" {
+			t.Fatalf("source label is empty: %#v", labels)
+		}
+		if labels["destination"] == "" {
+			t.Fatalf("destination label is empty: %#v", labels)
+		}
+		return
+	}
+
+	t.Fatalf("metric iptables_rule_packets_total not found in gathered metrics")
 }
 
 // TestBaseMetricsCollect 验证 baseMetrics.collect 能够创建带标签的 Gauge 指标。
