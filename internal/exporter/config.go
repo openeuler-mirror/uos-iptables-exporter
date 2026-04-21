@@ -6,6 +6,7 @@ package exporter
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"iptables_exporter/pkg/logger"
@@ -80,6 +81,26 @@ func LoadConfig() (Config, error) {
 	if err := Unpack(&cfg); err != nil {
 		return Config{}, fmt.Errorf("failed to unpack config: %w", err)
 	}
+	if err := validateConfig(cfg); err != nil {
+		return Config{}, err
+	}
 
 	return cfg, nil
+}
+
+func validateConfig(cfg Config) error {
+	if cfg.Port <= 0 || cfg.Port > 65535 {
+		return fmt.Errorf("invalid port %d", cfg.Port)
+	}
+	if cfg.MetricsPath == "" || !strings.HasPrefix(cfg.MetricsPath, "/") {
+		return fmt.Errorf("invalid metricsPath %q", cfg.MetricsPath)
+	}
+	if cfg.ScrapeTimeoutSeconds <= 0 {
+		return fmt.Errorf("invalid scrapeTimeoutSeconds %d", cfg.ScrapeTimeoutSeconds)
+	}
+	if cfg.MinScrapeIntervalSeconds <= 0 {
+		return fmt.Errorf("invalid minScrapeIntervalSeconds %d", cfg.MinScrapeIntervalSeconds)
+	}
+
+	return nil
 }
