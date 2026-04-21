@@ -26,5 +26,9 @@ func ValidateURI(uri string) error {
 		return url.InvalidHostError("scheme must be http or https")
 	}
 
+	if u.Host == "" {
+		return url.InvalidHostError("missing host")
+	}
+
 	return nil
 }
