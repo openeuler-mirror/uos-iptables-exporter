@@ -416,5 +416,8 @@ func (h *LandingPageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+    if r.Method == http.MethodHead {
+        return
+    }
 	w.Write(h.landingPage)
 }
