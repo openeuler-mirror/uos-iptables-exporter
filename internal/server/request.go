@@ -32,5 +32,8 @@ func (r *Request) Fail(status int) {
 
 	r.ResponseWriter.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	r.ResponseWriter.WriteHeader(status)
+	if r.Request != nil && r.Request.Method == http.MethodHead {
+		return
+	}
 	_, _ = r.ResponseWriter.Write([]byte(message))
 }
