@@ -230,7 +230,11 @@ func (p *parser) handleRule(line string) {
 		Target:      subParser.target,
 		Protocol:    subParser.protocol,
 	}
-	chain := p.currentTable.Chains[subParser.chain]
+	chain, ok := p.currentTable.Chains[subParser.chain]
+	if !ok {
+		p.errors = append(p.errors, ParseError{"unknown chain", p.line, line, p.currentTableName, subParser.chain})
+		return
+	}
 	r.Index = len(chain.Rules)
 	chain.Rules = append(chain.Rules, r)
 	p.currentTable.Chains[subParser.chain] = chain
@@ -266,7 +270,11 @@ func (p *parser) handleRuleWithCounter(ruleLine string, packets, bytes uint64) {
 		Target:      subParser.target,
 		Protocol:    subParser.protocol,
 	}
-	chain := p.currentTable.Chains[subParser.chain]
+	chain, ok := p.currentTable.Chains[subParser.chain]
+	if !ok {
+		p.errors = append(p.errors, ParseError{"unknown chain", p.line, ruleLine, p.currentTableName, subParser.chain})
+		return
+	}
 	r.Index = len(chain.Rules)
 	chain.Rules = append(chain.Rules, r)
 	p.currentTable.Chains[subParser.chain] = chain
