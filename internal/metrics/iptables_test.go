@@ -41,8 +41,8 @@ func buildTestTables() parser.Tables {
 					Packets: 100,
 					Bytes:   2048,
 					Rules: []parser.Rule{
-						{Packets: 60, Bytes: 1024, InIface: "eth0", OutIface: "", Source: "10.0.0.1/32", Destination: "10.0.0.2/32"},
-						{Packets: 40, Bytes: 1024, InIface: "eth1", OutIface: "", Source: "10.0.0.3/32", Destination: "10.0.0.4/32"},
+						{Packets: 60, Bytes: 1024, InIface: "eth0", OutIface: "", Source: "10.0.0.1/32", Destination: "10.0.0.2/32", Target: "ACCEPT"},
+						{Packets: 40, Bytes: 1024, InIface: "eth1", OutIface: "", Source: "10.0.0.3/32", Destination: "10.0.0.4/32", Target: "DROP"},
 					},
 				},
 				"FORWARD": {
@@ -163,6 +163,9 @@ func TestRuleMetricsIncludeAddressLabels(t *testing.T) {
 		}
 		if labels["destination"] == "" {
 			t.Fatalf("destination label is empty: %#v", labels)
+		}
+		if labels["target"] == "" {
+			t.Fatalf("target label is empty: %#v", labels)
 		}
 		return
 	}
