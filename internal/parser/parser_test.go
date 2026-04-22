@@ -169,3 +169,26 @@ func TestParseRuleWithLongAddressFlags(t *testing.T) {
 		t.Fatalf("expected Destination=2001:db8::2, got %q", r.Destination)
 	}
 }
+
+func TestHandleRuleWithCounterRejectsUnknownChain(t *testing.T) {
+	p := &parser{
+		result:           make(Tables),
+		currentTableName: "filter",
+		currentTable: &Table{
+			Name:   "filter",
+			Chains: make(map[string]Chain),
+		},
+	}
+
+	p.handleRuleWithCounter("-A UNKNOWN -j ACCEPT", 1, 64)
+
+	if len(p.errors) != 1 {
+		t.Fatalf("expected 1 parse error, got %d", len(p.errors))
+	}
+	if got := p.errors[0].Error(); !strings.Contains(got, "unknown chain") {
+		t.Fatalf("expected unknown chain error, got %q", got)
+	}
+	if len(p.currentTable.Chains) != 0 {
+		t.Fatalf("expected no chains to be created, got %d", len(p.currentTable.Chains))
+	}
+}
