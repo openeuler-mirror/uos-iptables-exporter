@@ -414,6 +414,11 @@ func (h *LandingPageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+    if r.Method != http.MethodGet && r.Method != http.MethodHead {
+        w.Header().Set("Allow", "GET, HEAD")
+        http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+        return
+    }
 
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
     if r.Method == http.MethodHead {

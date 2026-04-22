@@ -70,3 +70,25 @@ func TestLandingPageHandlerHeadHasNoBody(t *testing.T) {
 		t.Fatalf("expected empty body for HEAD request, got %q", recorder.Body.String())
 	}
 }
+
+func TestLandingPageHandlerRejectsPost(t *testing.T) {
+	handler, err := NewLandingPage(LandingPageConfig{Name: "iptables-exporter"})
+	if err != nil {
+		t.Fatalf("NewLandingPage returned error: %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+
+	handler.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("unexpected status code: got %d, want %d", recorder.Code, http.StatusMethodNotAllowed)
+	}
+	if got := recorder.Header().Get("Allow"); got != "GET, HEAD" {
+		t.Fatalf("unexpected allow header: got %q", got)
+	}
+	if !strings.Contains(recorder.Body.String(), http.StatusText(http.StatusMethodNotAllowed)) {
+		t.Fatalf("unexpected response body: got %q", recorder.Body.String())
+	}
+}
