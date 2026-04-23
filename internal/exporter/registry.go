@@ -45,7 +45,9 @@ func (r *Registry) Register(metrics Metric) {
 func (r *Registry) GetMetrics() []Metric {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	return r.metrics
+	metrics := make([]Metric, len(r.metrics))
+	copy(metrics, r.metrics)
+	return metrics
 }
 
 func (r *Registry) Describe(descs chan<- *prometheus.Desc) {
