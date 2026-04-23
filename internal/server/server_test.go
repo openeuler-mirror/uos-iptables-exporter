@@ -28,6 +28,24 @@ func TestHealthzHandlerAllowsGet(t *testing.T) {
 	}
 }
 
+func TestHealthzHandlerHeadHasNoBody(t *testing.T) {
+	server := NewServer("iptables-exporter", "1.0.0")
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodHead, "/healthz", nil)
+
+	server.healthzHandler(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d, want %d", recorder.Code, http.StatusOK)
+	}
+	if got := recorder.Header().Get("Content-Type"); got != "application/json" {
+		t.Fatalf("unexpected content type: got %q", got)
+	}
+	if recorder.Body.Len() != 0 {
+		t.Fatalf("expected empty body for HEAD request, got %q", recorder.Body.String())
+	}
+}
+
 func TestHealthzHandlerRejectsPost(t *testing.T) {
 	server := NewServer("iptables-exporter", "1.0.0")
 	recorder := httptest.NewRecorder()
