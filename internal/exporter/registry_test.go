@@ -44,3 +44,22 @@ func TestRegistryDescribeForwardsCollectorDescriptions(t *testing.T) {
 		t.Fatalf("unexpected number of descs: got %d, want 1", count)
 	}
 }
+
+func TestRegistryGetMetricsReturnsCopy(t *testing.T) {
+	registry := NewRegistry()
+	original := testMetric{
+		desc: prometheus.NewDesc("test_metric_total", "test metric", nil, nil),
+	}
+	replacement := testMetric{
+		desc: prometheus.NewDesc("replacement_metric_total", "replacement metric", nil, nil),
+	}
+	registry.Register(original)
+
+	metrics := registry.GetMetrics()
+	metrics[0] = replacement
+
+	got := registry.GetMetrics()
+	if got[0] != original {
+		t.Fatalf("expected registry metrics to remain unchanged")
+	}
+}
