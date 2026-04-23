@@ -7,6 +7,7 @@ package parser
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
@@ -76,7 +77,7 @@ func ParseIptablesSave(r io.Reader) (Tables, error) {
 	}
 	parser.flush()
 	if len(parser.errors) > 0 {
-		return nil, parser.errors[0] // 只返回第一个错误
+		return nil, errors.Join(parser.errors...)
 	}
 	return parser.result, nil
 }
@@ -230,6 +231,10 @@ func (p *parser) handleRule(line string) {
 		Target:      subParser.target,
 		Protocol:    subParser.protocol,
 	}
+	if p.currentTable == nil {
+		p.errors = append(p.errors, ParseError{"unknown chain", p.line, line, p.currentTableName, subParser.chain})
+		return
+	}
 	chain, ok := p.currentTable.Chains[subParser.chain]
 	if !ok {
 		p.errors = append(p.errors, ParseError{"unknown chain", p.line, line, p.currentTableName, subParser.chain})
@@ -269,6 +274,10 @@ func (p *parser) handleRuleWithCounter(ruleLine string, packets, bytes uint64) {
 		Destination: subParser.destination,
 		Target:      subParser.target,
 		Protocol:    subParser.protocol,
+	}
+	if p.currentTable == nil {
+		p.errors = append(p.errors, ParseError{"unknown chain", p.line, ruleLine, p.currentTableName, subParser.chain})
+		return
 	}
 	chain, ok := p.currentTable.Chains[subParser.chain]
 	if !ok {

@@ -192,3 +192,20 @@ func TestHandleRuleWithCounterRejectsUnknownChain(t *testing.T) {
 		t.Fatalf("expected no chains to be created, got %d", len(p.currentTable.Chains))
 	}
 }
+
+func TestParseIptablesSaveReturnsJoinedErrors(t *testing.T) {
+	input := strings.NewReader("*filter\n:INPUT BROKEN [0:0]\n[1:1] -A UNKNOWN -j ACCEPT\nCOMMIT\n")
+
+	_, err := ParseIptablesSave(input)
+	if err == nil {
+		t.Fatal("expected parse error, got nil")
+	}
+
+	errText := err.Error()
+	if !strings.Contains(errText, "invalid policy") {
+		t.Fatalf("expected joined error to include invalid policy, got %q", errText)
+	}
+	if !strings.Contains(errText, "unknown chain") {
+		t.Fatalf("expected joined error to include unknown chain, got %q", errText)
+	}
+}
