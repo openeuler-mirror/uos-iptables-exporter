@@ -70,7 +70,40 @@ func (s *IptablesScraper) LastError() string {
 func (s *IptablesScraper) Snapshot() (tables parser.Tables, lastOK bool, lastErr string, lastSuccess time.Time, scrapeTotal, scrapeErrors uint64, lastDuration time.Duration) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.lastTables, s.lastOK, s.lastErr, s.lastSuccess, s.scrapeTotal, s.scrapeErrors, s.lastDuration
+	return cloneTables(s.lastTables), s.lastOK, s.lastErr, s.lastSuccess, s.scrapeTotal, s.scrapeErrors, s.lastDuration
+}
+
+func cloneTables(src parser.Tables) parser.Tables {
+	if src == nil {
+		return nil
+	}
+
+	cloned := make(parser.Tables, len(src))
+	for tableName, table := range src {
+		if table == nil {
+			cloned[tableName] = nil
+			continue
+		}
+
+		chains := make(map[string]parser.Chain, len(table.Chains))
+		for chainName, chain := range table.Chains {
+			rules := append([]parser.Rule(nil), chain.Rules...)
+			chains[chainName] = parser.Chain{
+				Name:    chain.Name,
+				Policy:  chain.Policy,
+				Packets: chain.Packets,
+				Bytes:   chain.Bytes,
+				Rules:   rules,
+			}
+		}
+
+		cloned[tableName] = &parser.Table{
+			Name:   table.Name,
+			Chains: chains,
+		}
+	}
+
+	return cloned
 }
 
 // Start begins periodic background scraping. It performs an initial scrape

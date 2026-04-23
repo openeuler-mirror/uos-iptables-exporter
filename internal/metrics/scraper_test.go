@@ -52,3 +52,38 @@ func TestScrapeNowUsesUpdatedGetter(t *testing.T) {
 		t.Fatalf("expected latest snapshot to replace old tables, got tables %v", tables)
 	}
 }
+
+func TestSnapshotReturnsClonedTables(t *testing.T) {
+	cfg := exporter.DefaultConfig
+	cfg.ScrapeTimeoutSeconds = 1
+	scraper := NewIptablesScraper(cfg)
+
+	originalTables := parser.Tables{
+		"filter": &parser.Table{
+			Name: "filter",
+			Chains: map[string]parser.Chain{
+				"INPUT": {
+					Name: "INPUT",
+					Rules: []parser.Rule{{Target: "ACCEPT"}},
+				},
+			},
+		},
+	}
+
+	scraper.SetGetTables(func(ctx context.Context) (parser.Tables, error) {
+		return originalTables, nil
+	})
+	scraper.ScrapeNow(context.Background())
+
+	tables, lastOK, lastErr, _, _, _, _ := scraper.Snapshot()
+	if !lastOK {
+		t.Fatalf("expected scrape to succeed, got error %q", lastErr)
+	}
+
+	tables["filter"].Chains["INPUT"] = parser.Chain{Name: "INPUT", Rules: []parser.Rule{{Target: "DROP"}}}
+
+	refreshedTables, _, _, _, _, _, _ := scraper.Snapshot()
+	if got := refreshedTables["filter"].Chains["INPUT"].Rules[0].Target; got != "ACCEPT" {
+		t.Fatalf("expected snapshot mutation not to leak back, got target %q", got)
+	}
+}
