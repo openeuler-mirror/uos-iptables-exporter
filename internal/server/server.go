@@ -133,6 +133,9 @@ func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(statusCode)
+	if r.Method == http.MethodHead {
+		return
+	}
 	if _, err := buf.WriteTo(w); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"method": r.Method,
