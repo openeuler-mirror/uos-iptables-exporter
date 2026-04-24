@@ -13,7 +13,16 @@ func NewFavicon() *favicon {
 }
 
 func (f *favicon) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+
 	w.Header().Set("Content-Type", "image/x-icon")
+	if r.Method == http.MethodHead {
+		return
+	}
 	_, _ = w.Write(f.body)
 }
 
