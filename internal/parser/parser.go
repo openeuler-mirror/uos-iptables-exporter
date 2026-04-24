@@ -75,6 +75,9 @@ func ParseIptablesSave(r io.Reader) (Tables, error) {
 		}
 		parser.handleLine(strings.TrimSpace(line)) // 去除前后空白
 	}
+	if parser.awaitingCommit {
+		parser.errors = append(parser.errors, errors.New("incomplete iptables-save output: missing COMMIT"))
+	}
 	parser.flush()
 	if len(parser.errors) > 0 {
 		return nil, errors.Join(parser.errors...)
@@ -185,9 +188,11 @@ func (p *parser) handleLine(line string) {
 
 	switch {
 	case line == "COMMIT":
+		p.awaitingCommit = false
 		p.flush()
 	case strings.HasPrefix(line, "*"):
 		p.flush()
+		p.awaitingCommit = true
 		p.currentTableName = strings.TrimPrefix(line, "*")
 	case strings.HasPrefix(line, ":"):
 		p.handleNewChain(line)

@@ -35,6 +35,7 @@ type parser struct {
 	result           Tables
 	currentTableName string
 	currentTable     *Table
+	awaitingCommit   bool
 	line             int
 	errors           []error
 }
