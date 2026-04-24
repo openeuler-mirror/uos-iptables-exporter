@@ -173,8 +173,9 @@ func (s *Server) setupHttpServer() error {
 		rateLimiter, err := ratelimit.NewRateLimiter(*rateLimitInterval, *rateLimitSize)
 		if err != nil {
 			logrus.Errorf("ratelimit middleware init error: %v", err)
+		} else {
+			s.Use(Ratelimit(rateLimiter))
 		}
-		s.Use(Ratelimit(rateLimiter))
 	}
 	addr := fmt.Sprintf("%s:%d", s.CommonConfig.Address, s.CommonConfig.Port)
 	schema := "http"
