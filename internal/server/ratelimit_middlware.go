@@ -27,6 +27,9 @@ func Ratelimit(ratelimiter *ratelimit.RateLimiter) HandlerFunc {
 	logrus.Info("ratelimit middleware init")
 	logrus.Debugf("ratelimit middleware init rateLimitInterval: %v, rateLimitSize: %v\n", *rateLimitInterval, *rateLimitSize)
 	return func(req *Request) {
+		if ratelimiter == nil {
+			return
+		}
 		if err := ratelimiter.Get(); err != nil {
 			req.Error = err
 			req.Fail(429)

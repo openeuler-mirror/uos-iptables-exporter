@@ -10,6 +10,21 @@ import (
 	"testing"
 )
 
+func TestRatelimitNilLimiterIsNoop(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	request := NewRequest(recorder, req)
+
+	Ratelimit(nil)(request)
+
+	if request.Error != nil {
+		t.Fatalf("expected nil limiter to leave request error unset, got %v", request.Error)
+	}
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d, want %d", recorder.Code, http.StatusOK)
+	}
+}
+
 func TestRequestFailWithError(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
