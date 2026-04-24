@@ -44,6 +44,13 @@ func TestValidateConfig(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "invalid log max size",
+			mutate: func(cfg *Config) {
+				cfg.Logging.MaxSize = "broken"
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, test := range tests {
