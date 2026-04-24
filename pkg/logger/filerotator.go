@@ -112,7 +112,9 @@ func (fr *FileRotator) Close() error {
 	defer fr.mu.Unlock()
 
 	if fr.currentFile != nil {
-		return fr.currentFile.Close()
+		err := fr.currentFile.Close()
+		fr.currentFile = nil
+		return err
 	}
 	return nil
 }
