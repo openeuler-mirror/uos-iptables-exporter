@@ -13,6 +13,7 @@ import (
 	"iptables_exporter/pkg/utils"
 
 	"github.com/alecthomas/kingpin"
+	"github.com/dustin/go-humanize"
 	"gopkg.in/yaml.v2"
 )
 
@@ -100,6 +101,9 @@ func validateConfig(cfg Config) error {
 	}
 	if cfg.MinScrapeIntervalSeconds <= 0 {
 		return fmt.Errorf("invalid minScrapeIntervalSeconds %d", cfg.MinScrapeIntervalSeconds)
+	}
+	if _, err := humanize.ParseBytes(cfg.Logging.MaxSize); err != nil {
+		return fmt.Errorf("invalid log.max_size %q: %w", cfg.Logging.MaxSize, err)
 	}
 
 	return nil
