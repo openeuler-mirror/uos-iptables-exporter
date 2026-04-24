@@ -24,3 +24,15 @@ func TestParseIptablesSaveHandlesFinalLineWithoutNewline(t *testing.T) {
 		t.Fatalf("expected INPUT chain to be parsed from final line without newline")
 	}
 }
+
+func TestParseIptablesSaveRejectsMissingCommit(t *testing.T) {
+	input := strings.NewReader("*filter\n:INPUT ACCEPT [0:0]\n")
+
+	_, err := ParseIptablesSave(input)
+	if err == nil {
+		t.Fatal("expected parse error for missing COMMIT, got nil")
+	}
+	if !strings.Contains(err.Error(), "missing COMMIT") {
+		t.Fatalf("expected missing COMMIT error, got %q", err.Error())
+	}
+}
