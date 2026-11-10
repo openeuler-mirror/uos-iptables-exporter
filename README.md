@@ -118,3 +118,23 @@ scrape_configs:
 
 重新加载 Prometheus 配置后，就可以在 Prometheus / Grafana 中查看规则和链的
 包数、字节数等相关指标了。
+
+## 指标列表
+
+Exporter 暴露的主要指标如下（完整定义见 `internal/metrics/iptables.go`）：
+
+| 指标名 | 类型 | 标签 |
+| --- | --- | --- |
+| `iptables_exporter_scrape_duration_seconds` | Gauge | — |
+| `iptables_exporter_scrape_success` | Gauge | — |
+| `iptables_exporter_scrape_total` | Counter | — |
+| `iptables_exporter_scrape_errors_total` | Counter | — |
+| `iptables_exporter_last_scrape_success` | Gauge | — |
+| `iptables_exporter_last_scrape_timestamp_seconds` | Gauge | — |
+| `iptables_table_chains_total` | Gauge | `table` |
+| `iptables_chain_rules_total` | Gauge | `table`, `chain` |
+| `iptables_chain_empty` | Gauge | `table`, `chain` |
+| `iptables_default_bytes_total` | Counter | `table`, `chain`, `policy` |
+| `iptables_default_packets_total` | Counter | `table`, `chain`, `policy` |
+| `iptables_rule_bytes_total` | Counter | `table`, `chain`, `in_iface`, `out_iface`, `source`, `destination`, `target`, `protocol` |
+| `iptables_rule_packets_total` | Counter | `table`, `chain`, `in_iface`, `out_iface`, `source`, `destination`, `target`, `protocol` |
