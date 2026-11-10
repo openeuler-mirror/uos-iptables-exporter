@@ -100,6 +100,11 @@ iptables-exporter -c /etc/uos-exporter/iptables-exporter.yaml
 
 你可以在浏览器或 `curl` 中访问这些地址，确认 Exporter 是否正常运行。
 
+健康检查 `/healthz` 返回 JSON，包含 `status` 和 `message` 两个字段：
+
+- 正常时返回 `200 OK`，`status` 为 `ok`；
+- 当最近一次 `iptables` 抓取失败时返回 `503 Service Unavailable`，`status` 为 `error`，`message` 为具体失败原因。
+
 ### Prometheus 抓取配置示例
 
 在 Prometheus 的配置文件中添加类似配置：
