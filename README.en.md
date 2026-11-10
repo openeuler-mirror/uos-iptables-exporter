@@ -27,7 +27,7 @@ From the project root directory `uos-iptables-exporter`:
 - Run `make fmt` to format Go code.
 - Run `make test` to execute the test suite.
 - Run `make vet` to run static analysis.
-- Run `make build` (recommended), or `go build ./...`.
+- Run `make build` (recommended), or `go build ./...` (which produces an executable in the current directory, not under `build/bin`).
 
 When using `make build`, the binary is usually placed at:
 
@@ -69,6 +69,8 @@ Common fields:
 - `port`: listen port, e.g. `9077`.
 - `metricsPath`: metrics endpoint path for Prometheus, default `/metrics`.
 - `log.level`: log level, such as `debug` / `info` / `warn`.
+- `log.log_path`: log file path, default `/var/log/exporter.log` (note the snake_case key).
+- `log.max_size`: max size of a single log file, human-readable (e.g. `10MB`).
 - `scrapeTimeoutSeconds`: timeout for a single `iptables-save -c` execution, default `20` seconds.
 - `minScrapeIntervalSeconds`: minimum interval between real background scrapes, default `10` seconds, to avoid running `iptables-save` too frequently.
 
@@ -112,3 +114,7 @@ scrape_configs:
 
 After reloading Prometheus, you should see iptables-related metrics (tables,
 chains, rules, packets, bytes, etc.) in Prometheus / Grafana.
+
+## License
+
+This project is licensed under the [MIT](LICENSE) license.
