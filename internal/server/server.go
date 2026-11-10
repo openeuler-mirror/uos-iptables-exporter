@@ -145,10 +145,8 @@ func (s *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// 获取 Name 字段的线程安全方法
+// getName returns the server name.
 func (s *Server) getName() string {
-	// s.mu.RLock()
-	// defer s.mu.RUnlock()
 	return s.Name
 }
 
