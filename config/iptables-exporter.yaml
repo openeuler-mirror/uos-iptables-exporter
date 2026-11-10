@@ -1,8 +1,17 @@
+# Listen address for the exporter.
 address: "0.0.0.0"
+# Listen port for the exporter.
 port: 9077
+# Path under which Prometheus scrapes metrics.
 metricsPath: "/metrics"
+# Logging configuration.
 log:
+  # Log level: debug / info / warn / error.
   level: "debug"
+  # Log file path.
+  log_path: "/var/log/exporter.log"
+  # Max size of a single log file, human-readable (e.g. 10MB).
+  max_size: "10MB"
 
 # Timeout for a single iptables-save execution.
 scrapeTimeoutSeconds: 20
