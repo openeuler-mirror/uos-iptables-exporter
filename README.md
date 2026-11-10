@@ -69,6 +69,8 @@ log:
 - `port`：监听端口，例如 `9077`；
 - `metricsPath`：Prometheus 抓取指标的路径，默认 `/metrics`；
 - `log.level`：日志级别，`debug` / `info` / `warn` 等；
+- `log.log_path`：日志文件路径，默认 `/var/log/exporter.log`（注意字段为下划线命名）；
+- `log.max_size`：单个日志文件大小上限，支持 `10MB` 这类人类可读格式；
 - `scrapeTimeoutSeconds`：单次执行 `iptables-save -c` 的超时时间，默认 `20` 秒；
 - `minScrapeIntervalSeconds`：后台真实抓取的最小间隔，默认 `10` 秒，用于避免高频重复执行 `iptables-save`。
 
