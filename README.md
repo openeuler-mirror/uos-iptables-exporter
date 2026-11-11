@@ -27,9 +27,9 @@ Exporter 会调用 `iptables-save -c`，解析输出中的表 / 链 / 规则级�
 - 使用 `make fmt` 格式化 Go 代码；
 - 使用 `make test` 运行测试；
 - 使用 `make vet` 做静态检查；
-- 使用 `make build`（推荐）；或使用 `go build ./...`。
+- 使用 `make build`（推荐）；也可直接执行 `go build ./...`（其产物为当前目录下的可执行文件，不会输出到 `build/bin`）。
 
-使用 `make build` 时，编译好的二进制通常位于：
+使用 `make build` 时，编译好的二进制位于：
 
 - `build/bin/iptables-exporter`
 
